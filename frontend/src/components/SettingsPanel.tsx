@@ -9,7 +9,7 @@
  * For MVP: Simple interface with localStorage persistence
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import './SettingsPanel.css'
 
 interface SettingsPanelProps {

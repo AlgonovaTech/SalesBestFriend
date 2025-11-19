@@ -17,8 +17,8 @@ export const InCallAssist: React.FC<InCallAssistProps> = ({ trigger }) => {
   const [displayedTrigger, setDisplayedTrigger] = useState<Trigger | null>(null)
   const [isVisible, setIsVisible] = useState(false)
   const [fadeOut, setFadeOut] = useState(false)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const dismissRef = useRef<NodeJS.Timeout | null>(null)
+  const timeoutRef = useRef<number | null>(null)
+  const dismissRef = useRef<number | null>(null)
 
   useEffect(() => {
     // New trigger arrived

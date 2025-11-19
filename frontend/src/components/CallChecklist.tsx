@@ -172,7 +172,7 @@ export default function CallChecklist({ coachWs }: CallChecklistProps) {
     let totalItems = 0
     
     Object.values(checklist).forEach(stage => {
-      totalCompleted += stage.items.filter(item => item.completed).length
+      totalCompleted += stage.items.filter((item: any) => item.completed).length
       totalItems += stage.items.length
     })
     
@@ -261,7 +261,7 @@ export default function CallChecklist({ coachWs }: CallChecklistProps) {
               </div>
 
               <ul className="checklist-items">
-                {stage.items.map(item => (
+                {stage.items.map((item: any) => (
                   <li 
                     key={item.id}
                     className={`checklist-item ${item.completed ? 'completed' : ''}`}

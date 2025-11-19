@@ -20,7 +20,7 @@ interface CoachMessage {
 
 function App() {
   const [isRecording, setIsRecording] = useState(false)
-  const [hint, setHint] = useState('Нажмите "Начать запись" для старта коучинга')
+  const [, setHint] = useState('Нажмите "Начать запись" для старта коучинга')
   const [probability, setProbability] = useState(0)
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle')
   const [selectedLanguage, setSelectedLanguage] = useState('id')

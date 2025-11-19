@@ -37,7 +37,7 @@ interface StageChecklistProps {
   onManualToggle: (itemId: string) => void
 }
 
-export default function StageChecklist({ stages, currentStageId, callElapsed, onManualToggle }: StageChecklistProps) {
+export default function StageChecklist({ stages, onManualToggle }: StageChecklistProps) {
   const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set())
 
   const toggleStage = (stageId: string) => {
