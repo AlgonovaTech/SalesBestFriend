@@ -26,6 +26,7 @@ pydantic==2.12.3
 pydantic_core==2.41.4
 pydub==0.25.1
 python-dotenv==1.0.0
+python-multipart==0.0.9
 PyYAML==6.0.3
 requests==2.31.0
 setuptools==80.9.0
