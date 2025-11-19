@@ -225,7 +225,7 @@ function App() {
       console.log('  URL:', window.location.href)
       console.log('  Protocol:', window.location.protocol)
       console.log('  navigator.mediaDevices:', navigator.mediaDevices ? '✅ Есть' : '❌ Нет')
-      console.log('  getDisplayMedia:', navigator.mediaDevices?.getDisplayMedia ? '✅ Есть' : '❌ Нет')
+      console.log('  getDisplayMedia:', typeof navigator.mediaDevices?.getDisplayMedia === 'function' ? '✅ Есть' : '❌ Нет')
       console.log('  MediaRecorder:', typeof MediaRecorder !== 'undefined' ? '✅ Есть' : '❌ Нет')
       console.log('🔍 === КОНЕЦ ДИАГНОСТИКИ ===\n')
       

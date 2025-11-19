@@ -16,6 +16,9 @@ COPY backend/requirements.txt .
 # Install Python dependencies (including python-multipart)
 RUN pip install --no-cache-dir -r requirements.txt
 
+# EXPLICIT INSTALL: Ensure python-multipart is installed (fixes Railway cache issue)
+RUN pip install --no-cache-dir python-multipart==0.0.9
+
 # Copy rest of backend code
 COPY backend/ .
 
