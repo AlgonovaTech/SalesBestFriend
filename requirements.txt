@@ -1,0 +1,5 @@
+# This is a redirect to the actual requirements in backend/
+# Railway needs this file in the root to find dependencies
+
+-r backend/requirements.txt
+
