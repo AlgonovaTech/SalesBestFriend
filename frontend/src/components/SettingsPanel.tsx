@@ -202,10 +202,36 @@ export default function SettingsPanel({ onClose, selectedLanguage, onLanguageCha
 
   // ===== IMPORT / EXPORT =====
 
+  // Helper: Generate ID from text (kebab-case)
+  const generateIdFromText = (text: string) => {
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .substring(0, 50) || generateId()
+  }
+
   const handleExportJSON = () => {
+    // Simplify for export: remove IDs, use minutes instead of seconds
+    const simplifiedStages = stages.map(stage => ({
+      name: stage.name,
+      time_minutes: Math.round(stage.time_budget_seconds / 60),
+      items: stage.items.map(item => ({
+        type: item.type,
+        label: item.label
+      }))
+    }))
+
+    const simplifiedFields = fields.map(field => ({
+      label: field.label,
+      category: field.category,
+      multiline: field.multiline,
+      ...(field.hint && { hint: field.hint })
+    }))
+
     const config = {
-      call_structure: stages,
-      client_fields: fields
+      call_structure: simplifiedStages,
+      client_fields: simplifiedFields
     }
     const json = JSON.stringify(config, null, 2)
     
@@ -238,9 +264,36 @@ export default function SettingsPanel({ onClose, selectedLanguage, onLanguageCha
         throw new Error('Invalid structure: client_fields must be an array')
       }
 
+      // Convert simplified format to full format with auto-generated IDs
+      const fullStages: CallStage[] = config.call_structure.map((stage: any) => {
+        const stageId = stage.id || generateIdFromText(stage.name)
+        
+        return {
+          id: stageId,
+          name: stage.name,
+          // Support both time_minutes (new) and time_budget_seconds (old)
+          time_budget_seconds: stage.time_minutes 
+            ? stage.time_minutes * 60 
+            : (stage.time_budget_seconds || 180),
+          items: (stage.items || []).map((item: any) => ({
+            id: item.id || generateIdFromText(item.label),
+            type: item.type || 'ask',
+            label: item.label
+          }))
+        }
+      })
+
+      const fullFields: ClientField[] = config.client_fields.map((field: any) => ({
+        id: field.id || generateIdFromText(field.label),
+        label: field.label,
+        category: field.category || 'notes',
+        multiline: field.multiline !== undefined ? field.multiline : false,
+        hint: field.hint
+      }))
+
       // Apply configuration
-      setStages(config.call_structure)
-      setFields(config.client_fields)
+      setStages(fullStages)
+      setFields(fullFields)
       setShowImportExport(false)
       setImportJson('')
       alert('✅ Configuration imported successfully!')
