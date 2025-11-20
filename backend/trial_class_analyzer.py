@@ -81,37 +81,142 @@ Type: {action_description}
 Recent conversation:
 {conversation_text}
 
-Was this action completed in the conversation? Consider:
-- The conversation is in Bahasa Indonesia
-- Look for MEANING and INTENT, not exact words
-- Be STRICT: require clear evidence
-- Avoid false positives from partial mentions
+CRITICAL RULES:
+1. The conversation is in Bahasa Indonesia
+2. Look for MEANING and INTENT, not exact words
+3. Be EXTREMELY STRICT: require clear, direct evidence
+4. The evidence quote MUST directly show the action was completed
+5. Avoid false positives from unrelated mentions
+
+EVIDENCE MUST BE RELEVANT:
+✅ GOOD: Evidence directly shows the action
+   Action: "Ask about child's age"
+   Evidence: "Usia anaknya berapa tahun?" 
+   
+✅ GOOD: Evidence proves the discussion happened
+   Action: "Identify parent concerns"
+   Evidence: "Papa khawatir anak kurang fokus belajar"
+
+❌ BAD: Evidence is just nearby but unrelated
+   Action: "Identify parent concerns"  
+   Evidence: "Oke, selamat datang" ← This is just greeting!
+
+❌ BAD: Evidence doesn't prove the action
+   Action: "Explain curriculum"
+   Evidence: "Oke baik" ← Just acknowledgment, not explanation!
+
+If you're not 100% sure the evidence PROVES the action was done, mark completed=false.
 
 Return ONLY valid JSON:
 {{
   "completed": true/false,
   "confidence": 0.0-1.0,
-  "evidence": "brief quote showing completion (or empty if not completed)"
+  "evidence": "direct quote proving completion (or empty if not completed)",
+  "reasoning": "one sentence explaining why evidence proves this action"
 }}
 """
         
         try:
-            response = self._call_llm(prompt, temperature=0.2, max_tokens=150)
+            response = self._call_llm(prompt, temperature=0.2, max_tokens=200)
             result = json.loads(response)
             
             completed = result.get("completed", False)
             confidence = result.get("confidence", 0.0)
             evidence = result.get("evidence", "")
+            reasoning = result.get("reasoning", "")
             
-            # Guard: Only accept high confidence completions
+            # Guard 1: Only accept high confidence completions
             if completed and confidence < 0.8:
                 return False, confidence, "Confidence too low"
+            
+            # Guard 2: Evidence must exist and be substantial
+            if completed and len(evidence.strip()) < 10:
+                return False, confidence, "Evidence too short"
+            
+            # Guard 3: Validate evidence relevance with second LLM call
+            if completed and confidence >= 0.8:
+                validation_passed = self._validate_evidence_relevance(
+                    item_content=item_content,
+                    evidence=evidence,
+                    reasoning=reasoning
+                )
+                if not validation_passed:
+                    print(f"   ⚠️ Evidence validation FAILED for '{item_content[:50]}...'")
+                    return False, confidence, f"Evidence not relevant: {evidence[:100]}"
             
             return completed, confidence, evidence
             
         except Exception as e:
             print(f"   ⚠️ Item check failed for {item_id}: {e}")
             return False, 0.0, str(e)
+    
+    def _validate_evidence_relevance(
+        self,
+        item_content: str,
+        evidence: str,
+        reasoning: str
+    ) -> bool:
+        """
+        Validate that evidence actually proves the action was completed
+        This is a second-pass check to catch false positives
+        
+        Args:
+            item_content: The action that should be completed
+            evidence: The quote provided as proof
+            reasoning: The reasoning from first check
+            
+        Returns:
+            True if evidence is relevant, False if not
+        """
+        if not evidence or len(evidence.strip()) < 5:
+            return False
+        
+        validation_prompt = f"""You are validating evidence quality for a sales call checklist.
+
+REQUIRED ACTION:
+"{item_content}"
+
+PROVIDED EVIDENCE:
+"{evidence}"
+
+REASONING (from first check):
+"{reasoning}"
+
+CRITICAL QUESTION: Does the evidence DIRECTLY prove that the required action was completed?
+
+Examples of INVALID evidence:
+❌ Evidence is just a greeting when action is "identify concerns"
+❌ Evidence is asking about time when action is "ask about child's age"  
+❌ Evidence is unrelated chit-chat
+❌ Evidence is from a different topic
+
+Examples of VALID evidence:
+✅ Evidence shows the exact question was asked
+✅ Evidence shows the information was discussed
+✅ Evidence directly relates to the required action
+
+Return ONLY valid JSON:
+{{
+  "is_valid": true/false,
+  "explanation": "why evidence does or doesn't prove the action"
+}}
+"""
+        
+        try:
+            response = self._call_llm(validation_prompt, temperature=0.1, max_tokens=100)
+            result = json.loads(response)
+            is_valid = result.get("is_valid", False)
+            explanation = result.get("explanation", "")
+            
+            if not is_valid:
+                print(f"      🔍 Validation: {explanation}")
+            
+            return is_valid
+            
+        except Exception as e:
+            print(f"   ⚠️ Evidence validation error: {e}")
+            # On error, be conservative - accept the original decision
+            return True
     
     def extract_client_card_fields(
         self,

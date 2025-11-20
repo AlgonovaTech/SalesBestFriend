@@ -79,6 +79,7 @@ call_start_time: Optional[float] = None  # Timestamp when call started
 
 # Stage tracking
 current_stage_id: str = ""  # Track current stage to prevent jitter
+stage_start_time: Optional[float] = None  # Timestamp when current stage started
 
 # Analyzer
 analyzer = get_trial_class_analyzer()
@@ -153,10 +154,13 @@ async def websocket_ingest(websocket: WebSocket):
     global transcription_language, is_live_recording, call_start_time
     global checklist_progress, checklist_evidence, checklist_last_check
     global client_card_data, accumulated_transcript
+    global current_stage_id, stage_start_time
     
     # Reset state for new session
     is_live_recording = True
     call_start_time = time.time()
+    stage_start_time = time.time()  # Start with first stage
+    current_stage_id = call_structure[0]['id'] if call_structure else ""  # Initialize to first stage
     checklist_progress = {}
     checklist_evidence = {}
     checklist_last_check = {}
@@ -501,10 +505,12 @@ async def health():
 @app.post("/api/process-transcript")
 async def process_transcript(transcript: str = Form(...), language: str = Form("id")):
     """Process a text transcript (for testing)"""
-    global accumulated_transcript, call_start_time
+    global accumulated_transcript, call_start_time, current_stage_id, stage_start_time
     
     if not call_start_time:
         call_start_time = time.time()
+        stage_start_time = time.time()
+        current_stage_id = call_structure[0]['id'] if call_structure else ""
     
     accumulated_transcript = transcript
     
@@ -575,8 +581,11 @@ async def process_youtube(url: str = Form(...), language: str = Form("id"), real
         print(f"   Real-time: {real_time}")
         
         # Reset state for new session (like live recording)
+        global current_stage_id, stage_start_time
         is_live_recording = True
         call_start_time = time.time()
+        stage_start_time = time.time()
+        current_stage_id = call_structure[0]['id'] if call_structure else ""
         checklist_progress = {}
         checklist_evidence = {}
         client_card_data = {}  # Will be filled as data is extracted
