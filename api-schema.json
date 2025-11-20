@@ -1,0 +1,467 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Trial Class Sales Assistant API",
+    "description": "Real-time AI coaching for Zoom trial classes in Bahasa Indonesia",
+    "version": "2.0.0",
+    "contact": {
+      "name": "API Support"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Local development"
+    },
+    {
+      "url": "https://salesbestfriend-production.up.railway.app",
+      "description": "Production (Railway)"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Service information",
+        "responses": {
+          "200": {
+            "description": "Service info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service": {
+                      "type": "string",
+                      "example": "Trial Class Sales Assistant"
+                    },
+                    "version": {
+                      "type": "string",
+                      "example": "2.0.0"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "operational"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Service health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "healthy"
+                    },
+                    "transcription": {
+                      "type": "string",
+                      "example": "ready"
+                    },
+                    "llm": {
+                      "type": "string",
+                      "example": "ready"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config/call-structure": {
+      "get": {
+        "summary": "Get call structure configuration",
+        "responses": {
+          "200": {
+            "description": "Current call structure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallStructure"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Update call structure configuration",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CallStructure"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Update successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config/client-card": {
+      "get": {
+        "summary": "Get client card fields configuration",
+        "responses": {
+          "200": {
+            "description": "Current client card fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientCardConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Update client card fields configuration",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientCardConfig"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Update successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/process-youtube": {
+      "post": {
+        "summary": "Process YouTube URL for debugging",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "example": "https://youtube.com/watch?v=yQvcBDNw1Do"
+                  },
+                  "language": {
+                    "type": "string",
+                    "default": "id",
+                    "example": "id"
+                  }
+                },
+                "required": ["url"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Processing result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "transcriptLength": {
+                      "type": "integer"
+                    },
+                    "currentStage": {
+                      "type": "string"
+                    },
+                    "itemsCompleted": {
+                      "type": "integer"
+                    },
+                    "totalItems": {
+                      "type": "integer"
+                    },
+                    "clientCardFields": {
+                      "type": "integer"
+                    },
+                    "transcript": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CallStructure": {
+        "type": "object",
+        "properties": {
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CallStage"
+            }
+          }
+        }
+      },
+      "CallStage": {
+        "type": "object",
+        "required": ["id", "name", "time_budget_seconds", "items"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique stage identifier",
+            "example": "greeting"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name for the stage",
+            "example": "Greeting & Rapport"
+          },
+          "time_budget_seconds": {
+            "type": "integer",
+            "description": "Recommended time budget in seconds",
+            "example": 120
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChecklistItem"
+            }
+          }
+        }
+      },
+      "ChecklistItem": {
+        "type": "object",
+        "required": ["id", "type", "label"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique item identifier",
+            "example": "intro_self"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["ask", "say"],
+            "description": "Type of checklist item",
+            "example": "ask"
+          },
+          "label": {
+            "type": "string",
+            "description": "What to ask or say",
+            "example": "Introduce yourself & company"
+          },
+          "hint": {
+            "type": "string",
+            "description": "Optional hint for AI analysis",
+            "example": "Sales manager should state their name and company clearly"
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Completion status (AI-driven)",
+            "example": false
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "AI confidence score",
+            "example": 0.95
+          }
+        }
+      },
+      "ClientCardConfig": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "object",
+            "description": "Fields grouped by category",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ClientCardField"
+              }
+            },
+            "example": {
+              "Child Information": [
+                {
+                  "id": "child_age",
+                  "label": "Child's Age",
+                  "type": "text",
+                  "hint": "Age of the child"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "ClientCardField": {
+        "type": "object",
+        "required": ["id", "label", "type"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique field identifier",
+            "example": "child_age"
+          },
+          "label": {
+            "type": "string",
+            "description": "Display label",
+            "example": "Child's Age"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["text", "textarea"],
+            "description": "Field type",
+            "example": "text"
+          },
+          "hint": {
+            "type": "string",
+            "description": "Hint for AI extraction",
+            "example": "Age of the child in years"
+          },
+          "value": {
+            "type": "string",
+            "description": "Current value (AI-filled during call)",
+            "example": "8 years old"
+          }
+        }
+      },
+      "WebSocketCoachMessage": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ChecklistUpdateMessage"
+          },
+          {
+            "$ref": "#/components/schemas/ClientCardUpdateMessage"
+          },
+          {
+            "$ref": "#/components/schemas/AssistMessage"
+          }
+        ]
+      },
+      "ChecklistUpdateMessage": {
+        "type": "object",
+        "required": ["type", "stages"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["checklist_update"]
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CallStage"
+            }
+          },
+          "currentStageId": {
+            "type": "string",
+            "example": "greeting"
+          },
+          "callElapsedSeconds": {
+            "type": "integer",
+            "example": 45
+          }
+        }
+      },
+      "ClientCardUpdateMessage": {
+        "type": "object",
+        "required": ["type", "clientCard"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["client_card_update"]
+          },
+          "clientCard": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "child_age": "8 years old",
+              "child_interests": "Minecraft, Roblox"
+            }
+          }
+        }
+      },
+      "AssistMessage": {
+        "type": "object",
+        "required": ["type", "trigger", "message"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["assist"]
+          },
+          "trigger": {
+            "type": "string",
+            "example": "objection_detected"
+          },
+          "message": {
+            "type": "string",
+            "example": "Client mentioned budget concerns. Suggest payment plan option."
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "example": "high"
+          }
+        }
+      }
+    }
+  }
+}
+
