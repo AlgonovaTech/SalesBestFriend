@@ -19,7 +19,11 @@ export default function YouTubeDebugPanel({ selectedLanguage, onClose }: YouTube
   const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle')
   const [message, setMessage] = useState('')
 
-  const API_HTTP = import.meta.env.VITE_API_HTTP || 'http://localhost:8000'
+  // Always use Railway backend in production (Vercel deployment)
+  const isProduction = window.location.hostname !== 'localhost'
+  const API_HTTP = isProduction 
+    ? 'https://salesbestfriend-production.up.railway.app'
+    : (import.meta.env.VITE_API_HTTP || 'http://localhost:8000')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
