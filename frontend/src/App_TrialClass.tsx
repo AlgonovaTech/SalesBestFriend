@@ -40,6 +40,7 @@ interface ChecklistItem {
 interface CoachMessage {
   type: 'initial' | 'update'
   callElapsedSeconds: number
+  stageElapsedSeconds?: number
   currentStageId: string
   stages: Stage[]
   clientCard: Record<string, string>
@@ -50,6 +51,7 @@ function App_TrialClass() {
   const [isRecording, setIsRecording] = useState(false)
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle')
   const [callElapsed, setCallElapsed] = useState(0)
+  const [stageElapsed, setStageElapsed] = useState(0)
   const [currentStageId, setCurrentStageId] = useState<string>('')
   const [stages, setStages] = useState<Stage[]>([])
   const [clientCard, setClientCard] = useState<Record<string, string>>({})
@@ -128,6 +130,7 @@ function App_TrialClass() {
         }
         
         setCallElapsed(data.callElapsedSeconds)
+        setStageElapsed(data.stageElapsedSeconds || 0)
         setCurrentStageId(data.currentStageId)
         setStages(data.stages)
         setClientCard(data.clientCard)
@@ -390,6 +393,7 @@ function App_TrialClass() {
             stages={stages}
             currentStageId={currentStageId}
             callElapsed={callElapsed}
+            stageElapsed={stageElapsed}
             onManualToggle={handleManualToggle}
           />
         </div>

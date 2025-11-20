@@ -245,6 +245,10 @@ async def websocket_ingest(websocket: WebSocket):
                             # Update current stage
                             if detected_stage != current_stage_id:
                                 print(f"🔄 Stage transition: {current_stage_id or '(start)'} → {detected_stage}")
+                                # Reset stage timer on transition
+                                global stage_start_time
+                                stage_start_time = time.time()
+                                print(f"   ⏱️ Stage timer reset")
                             current_stage_id = detected_stage
                             
                             print(f"\n📋 Checking checklist items...")
@@ -334,9 +338,15 @@ async def websocket_ingest(websocket: WebSocket):
                                 })
                             
                             # Send to all clients
+                            # Calculate stage elapsed time
+                            stage_elapsed = 0
+                            if stage_start_time is not None:
+                                stage_elapsed = int(time.time() - stage_start_time)
+                            
                             message_data = {
                                 "type": "update",
                                 "callElapsedSeconds": int(elapsed),
+                                "stageElapsedSeconds": stage_elapsed,
                                 "currentStageId": current_stage_id,
                                 "stages": stages_with_progress,
                                 "clientCard": client_card_data,
@@ -649,6 +659,10 @@ async def process_youtube(url: str = Form(...), language: str = Form("id"), real
                         )
                         if detected_stage != current_stage_id:
                             print(f"🔄 Stage transition: {current_stage_id or '(start)'} → {detected_stage}")
+                            # Reset stage timer on transition
+                            global stage_start_time
+                            stage_start_time = time.time()
+                            print(f"   ⏱️ Stage timer reset")
                         current_stage_id = detected_stage
                         
                         print(f"\n📋 Checking checklist items (stage: {current_stage_id})...")
@@ -774,9 +788,15 @@ async def process_youtube(url: str = Form(...), language: str = Form("id"), real
             })
         
         # Broadcast to connected clients
+        # Calculate stage elapsed time
+        stage_elapsed = 0
+        if stage_start_time is not None:
+            stage_elapsed = int(time.time() - stage_start_time)
+        
         message_data = {
             "type": "update",
             "callElapsedSeconds": int(elapsed),
+            "stageElapsedSeconds": stage_elapsed,
             "currentStageId": current_stage_id,
             "stages": stages_with_progress,
             "clientCard": client_card_data,

@@ -35,10 +35,11 @@ interface StageChecklistProps {
   stages: Stage[]
   currentStageId: string
   callElapsed: number
+  stageElapsed: number
   onManualToggle: (itemId: string) => void
 }
 
-export default function StageChecklist({ stages, onManualToggle }: StageChecklistProps) {
+export default function StageChecklist({ stages, stageElapsed, onManualToggle }: StageChecklistProps) {
   const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set())
   const [detailsModal, setDetailsModal] = useState<{ item: ChecklistItem; stageName: string } | null>(null)
 
@@ -108,7 +109,14 @@ export default function StageChecklist({ stages, onManualToggle }: StageChecklis
                   <span className="stage-number">{index + 1}</span>
                   <div className="stage-info">
                     <h3 className="stage-name">{stage.name}</h3>
-                    <span className="stage-time">{stageStart} – {stageEnd}</span>
+                    <div className="stage-time-container">
+                      <span className="stage-time">{stageStart} – {stageEnd}</span>
+                      {stage.isCurrent && (
+                        <span className="stage-timer">
+                          ⏱️ {formatTime(stageElapsed)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
