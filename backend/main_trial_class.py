@@ -308,10 +308,29 @@ async def websocket_ingest(websocket: WebSocket):
                                     })
                                     
                                     if completed:
-                                        checklist_progress[item_id] = True
-                                        checklist_evidence[item_id] = evidence
-                                        newly_completed.append(item['content'])
-                                        print(f"   ✅ {item['content']}")
+                                        # Guard: Check for duplicate evidence (same evidence used for multiple items)
+                                        duplicate_evidence = False
+                                        if evidence:
+                                            for existing_id, existing_evidence in checklist_evidence.items():
+                                                if existing_evidence == evidence:
+                                                    duplicate_evidence = True
+                                                    print(f"   ⚠️ DUPLICATE EVIDENCE detected!")
+                                                    print(f"      Same evidence already used for: {existing_id}")
+                                                    print(f"      Evidence: {evidence[:100]}")
+                                                    log_decision("duplicate_evidence", {
+                                                        "item_id": item_id,
+                                                        "duplicate_of": existing_id,
+                                                        "evidence": evidence
+                                                    })
+                                                    break
+                                        
+                                        if not duplicate_evidence:
+                                            checklist_progress[item_id] = True
+                                            checklist_evidence[item_id] = evidence
+                                            newly_completed.append(item['content'])
+                                            print(f"   ✅ {item['content']}")
+                                        else:
+                                            print(f"   ❌ {item['content']} - REJECTED (duplicate evidence)")
                                     else:
                                         print(f"   ❌ {item['content']} (confidence: {confidence:.0%})")
                             
@@ -379,7 +398,8 @@ async def websocket_ingest(websocket: WebSocket):
                                 "currentStageId": current_stage_id,
                                 "stages": stages_with_progress,
                                 "clientCard": client_card_data,
-                                "transcriptPreview": accumulated_transcript[-300:]
+                                "transcriptPreview": accumulated_transcript[-300:],
+                                "debugLog": debug_log[-50:]  # Last 50 entries for debugging
                             }
                             
                             message_json = json.dumps(message_data)
@@ -869,7 +889,8 @@ async def process_youtube(url: str = Form(...), language: str = Form("id"), real
             "currentStageId": current_stage_id,
             "stages": stages_with_progress,
             "clientCard": client_card_data,
-            "transcriptPreview": transcript[-300:]
+            "transcriptPreview": transcript[-300:],
+            "debugLog": debug_log[-50:]  # Last 50 entries for debugging
         }
         
         message_json = json.dumps(message_data)
