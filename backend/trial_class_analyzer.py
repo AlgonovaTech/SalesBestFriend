@@ -374,8 +374,8 @@ Return ONLY valid JSON:
         Returns:
             Dict of field_id → {value: str, evidence: str} (only fields with new info)
         """
-        # Guard: Skip if conversation too short
-        if len(conversation_text.strip()) < 50:
+        # Guard: Skip if conversation too short (need substantial conversation)
+        if len(conversation_text.strip()) < 200:
             return {}
         
         # Build field descriptions for LLM
@@ -401,10 +401,12 @@ Extract information for these fields (only if clearly mentioned):
 CRITICAL RULES:
 1. Only extract if CONFIDENT and EXPLICITLY mentioned
 2. Keep extractions brief (1-2 sentences max per field)
-3. If not mentioned, omit the field
+3. If not mentioned, DO NOT INCLUDE the field in response AT ALL
 4. Conversation is in Indonesian, but respond in English
 5. Evidence MUST be a direct quote that PROVES the information
 6. DO NOT extract from greetings, acknowledgments, or unrelated text
+7. NEVER use placeholder values like "Tidak disebutkan", "Not mentioned", "Unknown", "-", "N/A"
+8. If unsure or information is vague, SKIP THE FIELD ENTIRELY
 
 EVIDENCE MUST BE RELEVANT:
 ✅ GOOD:
@@ -427,16 +429,36 @@ EVIDENCE MUST BE RELEVANT:
    Value: "Learning"
    Evidence: "Kita akan belajar hari ini" ← Not parent's goal!
 
+❌ EXTREMELY BAD - NEVER DO THIS:
+   {{
+     "child_name": {{"value": "Tidak disebutkan", ...}},
+     "child_interests": {{"value": "Tidak disebutkan", ...}},
+     ...
+   }}
+   ← DON'T fill fields with "tidak disebutkan"! Just omit them!
+
+CORRECT EXAMPLE when info is missing:
+   {{}}  ← Return empty object, NOT fields with "tidak disebutkan"!
+
+CORRECT EXAMPLE when only child_name is mentioned:
+   {{
+     "child_name": {{
+       "value": "Andi",
+       "evidence": "Nama anaknya Andi",
+       "confidence": 0.95
+     }}
+   }}  ← Only include fields that are ACTUALLY mentioned!
+
 Return ONLY valid JSON with confidence:
 {{
   "field_id": {{
-    "value": "extracted text",
+    "value": "extracted text (NEVER 'tidak disebutkan' or similar)",
     "evidence": "direct quote proving this information",
     "confidence": 0.0-1.0
   }}
 }}
 
-If no clear information, return empty object: {{}}
+If no clear information found, return EMPTY object: {{}}
 """
         
         try:
@@ -459,6 +481,24 @@ If no clear information, return empty object: {{}}
                     value = str(field_data)
                     evidence = ''
                     confidence = 1.0
+                
+                # Guard 0: Reject placeholder values (LLM hallucinations)
+                value_lower = value.lower().strip()
+                placeholder_values = [
+                    "tidak disebutkan",
+                    "not mentioned",
+                    "unknown",
+                    "tidak ada",
+                    "tidak jelas",
+                    "belum disebutkan",
+                    "n/a",
+                    "na",
+                    "-",
+                    "none"
+                ]
+                if value_lower in placeholder_values or any(placeholder in value_lower for placeholder in ["tidak di", "not men", "belum di"]):
+                    print(f"   🚫 Rejected placeholder value for {field_id}: '{value}'")
+                    continue
                 
                 # Guard 1: Value must be substantial
                 if not value or len(value.strip()) <= 5:
