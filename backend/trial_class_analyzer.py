@@ -257,22 +257,41 @@ Conversation (Bahasa Indonesia):
 Extract information for these fields (only if clearly mentioned):
 {fields_str}
 
-Rules:
-- Only extract if CONFIDENT and EXPLICITLY mentioned
-- Keep extractions brief (1-2 sentences max per field)
-- If not mentioned, omit the field
-- Conversation is in Indonesian, but respond in English
-- Provide evidence (quote) from conversation for each extraction
+CRITICAL RULES:
+1. Only extract if CONFIDENT and EXPLICITLY mentioned
+2. Keep extractions brief (1-2 sentences max per field)
+3. If not mentioned, omit the field
+4. Conversation is in Indonesian, but respond in English
+5. Evidence MUST be a direct quote that PROVES the information
+6. DO NOT extract from greetings, acknowledgments, or unrelated text
 
-Return ONLY valid JSON:
+EVIDENCE MUST BE RELEVANT:
+✅ GOOD:
+   Field: child_name
+   Value: "Andi"
+   Evidence: "Nama anaknya Andi"
+
+✅ GOOD:
+   Field: child_interests
+   Value: "Playing Roblox and Minecraft"
+   Evidence: "Andi suka main Roblox dan Minecraft"
+
+❌ BAD:
+   Field: child_name
+   Value: "Seki"
+   Evidence: "Oke, selamat datang, Seki" ← Just greeting!
+
+❌ BAD:
+   Field: parent_goal
+   Value: "Learning"
+   Evidence: "Kita akan belajar hari ini" ← Not parent's goal!
+
+Return ONLY valid JSON with confidence:
 {{
   "field_id": {{
     "value": "extracted text",
-    "evidence": "relevant quote from conversation"
-  }},
-  "another_field_id": {{
-    "value": "extracted text",
-    "evidence": "relevant quote from conversation"
+    "evidence": "direct quote proving this information",
+    "confidence": 0.0-1.0
   }}
 }}
 
@@ -294,21 +313,113 @@ If no clear information, return empty object: {{}}
                 if isinstance(field_data, dict):
                     value = field_data.get('value', '')
                     evidence = field_data.get('evidence', '')
+                    confidence = field_data.get('confidence', 1.0)
                 else:
                     value = str(field_data)
                     evidence = ''
+                    confidence = 1.0
                 
-                if value and len(value.strip()) > 5:
-                    updates[field_id] = {
-                        'value': value.strip(),
-                        'evidence': evidence.strip()
-                    }
+                # Guard 1: Value must be substantial
+                if not value or len(value.strip()) <= 5:
+                    continue
+                
+                # Guard 2: Confidence must be high
+                if confidence < 0.7:
+                    print(f"   ⚠️ Low confidence ({confidence:.0%}) for {field_id}, skipping")
+                    continue
+                
+                # Guard 3: Evidence must exist
+                if not evidence or len(evidence.strip()) < 10:
+                    print(f"   ⚠️ Evidence too short for {field_id}, skipping")
+                    continue
+                
+                # Guard 4: Validate evidence relevance
+                # Get field label for validation
+                field_label = next((f['label'] for f in self.client_card_fields if f['id'] == field_id), field_id)
+                
+                validation_passed = self._validate_client_field_evidence(
+                    field_label=field_label,
+                    value=value,
+                    evidence=evidence
+                )
+                
+                if not validation_passed:
+                    print(f"   ⚠️ Evidence validation FAILED for {field_id}")
+                    continue
+                
+                updates[field_id] = {
+                    'value': value.strip(),
+                    'evidence': evidence.strip()
+                }
             
             return updates
             
         except Exception as e:
             print(f"   ⚠️ Client card extraction failed: {e}")
             return {}
+    
+    def _validate_client_field_evidence(
+        self,
+        field_label: str,
+        value: str,
+        evidence: str
+    ) -> bool:
+        """
+        Validate that evidence actually proves the extracted client information
+        This prevents false extractions from greetings or unrelated text
+        
+        Args:
+            field_label: Human-readable field name (e.g. "Child's Name")
+            value: The extracted value
+            evidence: The quote provided as proof
+            
+        Returns:
+            True if evidence is relevant, False if not
+        """
+        if not evidence or len(evidence.strip()) < 5:
+            return False
+        
+        validation_prompt = f"""You are validating evidence quality for client information extraction.
+
+FIELD: {field_label}
+EXTRACTED VALUE: "{value}"
+PROVIDED EVIDENCE: "{evidence}"
+
+CRITICAL QUESTION: Does the evidence DIRECTLY prove this information about the client?
+
+Examples of INVALID evidence:
+❌ Evidence is just a greeting when field is "child's name"
+❌ Evidence is about the lesson plan when field is "parent's goal"
+❌ Evidence is unrelated chit-chat
+❌ Evidence mentions the word but in different context
+
+Examples of VALID evidence:
+✅ Evidence shows the child's actual name being mentioned
+✅ Evidence shows parent stating their goal
+✅ Evidence shows the specific information being discussed
+
+Return ONLY valid JSON:
+{{
+  "is_valid": true/false,
+  "explanation": "why evidence does or doesn't prove the information"
+}}
+"""
+        
+        try:
+            response = self._call_llm(validation_prompt, temperature=0.1, max_tokens=100)
+            result = json.loads(response)
+            is_valid = result.get("is_valid", False)
+            explanation = result.get("explanation", "")
+            
+            if not is_valid:
+                print(f"      🔍 Client field validation: {explanation}")
+            
+            return is_valid
+            
+        except Exception as e:
+            print(f"   ⚠️ Client field validation error: {e}")
+            # On error, be conservative - accept the original decision
+            return True
     
     def batch_check_items(
         self,
