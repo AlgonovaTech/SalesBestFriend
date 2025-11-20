@@ -277,6 +277,21 @@ function App_TrialClass() {
   // Client card is now automatically filled by AI (read-only)
   // No manual update handler needed
 
+  // Handle config update from Settings
+  const handleConfigUpdate = (newStages: any[], newFields: any[]) => {
+    // Send updated config to backend via coach WebSocket
+    if (coachWsRef.current?.readyState === WebSocket.OPEN) {
+      coachWsRef.current.send(JSON.stringify({
+        type: 'update_config',
+        call_structure: newStages,
+        client_fields: newFields
+      }))
+      console.log('📤 Sent new configuration to backend')
+    } else {
+      console.warn('⚠️ Coach WebSocket not ready, config will be used on next connection')
+    }
+  }
+
   const getStatusColor = () => {
     switch (status) {
       case 'connected': return '#10b981'
@@ -352,6 +367,7 @@ function App_TrialClass() {
           onClose={() => setShowSettings(false)}
           selectedLanguage={selectedLanguage}
           onLanguageChange={setSelectedLanguage}
+          onConfigUpdate={handleConfigUpdate}
         />
       )}
 
