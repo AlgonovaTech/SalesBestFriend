@@ -242,9 +242,15 @@
   border-top: 1px solid rgba(0, 0, 0, 0.06);
   padding: 1.25rem 2.5rem;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   background: rgba(249, 250, 251, 0.3);
   border-radius: 0 0 16px 16px;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 0.75rem;
 }
 
 .btn-secondary {
@@ -271,6 +277,46 @@
   transform: translateY(0);
 }
 
+.btn-save {
+  padding: 0.625rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.15);
+}
+
+.btn-save:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.25);
+}
+
+.btn-save:active {
+  transform: translateY(0);
+}
+
+.btn-reset {
+  padding: 0.625rem 1.5rem;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #dc2626;
+  background: rgba(254, 226, 226, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-reset:hover {
+  background: rgba(254, 226, 226, 0.5);
+  border-color: rgba(239, 68, 68, 0.5);
+  transform: translateY(-1px);
+}
+
 /* ===== SCROLLBAR ===== */
 
 .settings-content::-webkit-scrollbar {
@@ -288,5 +334,349 @@
 
 .settings-content::-webkit-scrollbar-thumb:hover {
   background: rgba(55, 53, 47, 0.2);
+}
+
+/* ===== VISUAL EDITORS ===== */
+
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  gap: 2rem;
+}
+
+.btn-add {
+  padding: 0.625rem 1.25rem;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #10b981;
+  background: rgba(240, 253, 244, 0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-add:hover {
+  background: rgba(240, 253, 244, 0.8);
+  border-color: rgba(16, 185, 129, 0.5);
+  transform: translateY(-1px);
+}
+
+.editor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ===== STAGE EDITOR ===== */
+
+.stage-editor {
+  background: rgba(249, 250, 251, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.stage-editor:hover {
+  background: rgba(249, 250, 251, 0.8);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.stage-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.stage-number {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(55, 53, 47, 0.08);
+  border-radius: 50%;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.stage-name-input {
+  flex: 1;
+  padding: 0.625rem 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #37352f;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.stage-name-input:focus {
+  outline: none;
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.stage-time-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+}
+
+.stage-time-input input {
+  width: 50px;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #37352f;
+  text-align: center;
+}
+
+.stage-time-input input:focus {
+  outline: none;
+}
+
+.stage-time-input span {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+}
+
+.btn-delete-stage {
+  background: none;
+  border: none;
+  font-size: 1.125rem;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+  padding: 0.375rem;
+  border-radius: 6px;
+}
+
+.btn-delete-stage:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Items List */
+
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.item-editor {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.item-editor:hover {
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.item-type-select {
+  padding: 0.375rem 0.625rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #6b7280;
+  background: rgba(249, 250, 251, 0.5);
+  cursor: pointer;
+  min-width: 80px;
+}
+
+.item-type-select:focus {
+  outline: none;
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.item-label-input {
+  flex: 1;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #37352f;
+  background: white;
+}
+
+.item-label-input:focus {
+  outline: none;
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.btn-delete-item {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0.375rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-delete-item:hover {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.btn-add-item {
+  padding: 0.5rem 1rem;
+  border: 1px dashed rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #9ca3af;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.btn-add-item:hover {
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(240, 253, 244, 0.3);
+}
+
+/* ===== FIELD EDITOR ===== */
+
+.field-editor {
+  display: grid;
+  grid-template-columns: 1fr 180px 120px 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 1rem;
+  background: rgba(249, 250, 251, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.field-editor:hover {
+  background: rgba(249, 250, 251, 0.8);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.field-label-input {
+  padding: 0.625rem 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #37352f;
+  background: white;
+}
+
+.field-label-input:focus {
+  outline: none;
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.field-category-select {
+  padding: 0.625rem 0.875rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  background: white;
+  cursor: pointer;
+}
+
+.field-category-select:focus {
+  outline: none;
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.field-multiline-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.field-multiline-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.field-multiline-toggle span {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.field-hint-input {
+  padding: 0.625rem 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  background: white;
+  font-style: italic;
+}
+
+.field-hint-input:focus {
+  outline: none;
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #37352f;
+}
+
+.btn-delete-field {
+  background: none;
+  border: none;
+  font-size: 1.125rem;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+  padding: 0.375rem;
+  border-radius: 6px;
+}
+
+.btn-delete-field:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Empty State */
+
+.empty-editor {
+  padding: 3rem 2rem;
+  text-align: center;
+  background: rgba(249, 250, 251, 0.5);
+  border: 1px dashed rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+}
+
+.empty-editor p {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 0.9375rem;
 }
 
