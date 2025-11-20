@@ -61,6 +61,8 @@ function App_TrialClass() {
   const coachWsRef = useRef<WebSocket | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const mediaRecorderRef = useRef<any>(null)
+  const callStartTimeRef = useRef<number | null>(null)
+  const timerIntervalRef = useRef<number | null>(null)
 
   // Always use Railway backend in production (Vercel deployment)
   const isProduction = window.location.hostname !== 'localhost'
@@ -77,6 +79,30 @@ function App_TrialClass() {
       }
     }
   }, [])
+
+  // Local ticking timer (updates display every second)
+  useEffect(() => {
+    if (isRecording && callStartTimeRef.current) {
+      // Start local timer
+      timerIntervalRef.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - callStartTimeRef.current!) / 1000)
+        setCallElapsed(elapsed)
+      }, 1000)
+    } else {
+      // Stop local timer
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current)
+        timerIntervalRef.current = null
+      }
+    }
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current)
+        timerIntervalRef.current = null
+      }
+    }
+  }, [isRecording])
 
   const connectWebSockets = () => {
     setStatus('connecting')
@@ -95,6 +121,11 @@ function App_TrialClass() {
       try {
         const data: CoachMessage = JSON.parse(e.data)
         console.log('📨 Received update:', data.type)
+        
+        // Update call start time reference when we get server time
+        if (data.callElapsedSeconds > 0) {
+          callStartTimeRef.current = Date.now() - (data.callElapsedSeconds * 1000)
+        }
         
         setCallElapsed(data.callElapsedSeconds)
         setCurrentStageId(data.currentStageId)
@@ -229,6 +260,9 @@ function App_TrialClass() {
         }
       }
 
+      // Initialize call start time for local timer
+      callStartTimeRef.current = Date.now()
+      
       setIsRecording(true)
       setStatus('connected')
       
@@ -264,6 +298,10 @@ function App_TrialClass() {
       streamRef.current.getTracks().forEach(track => track.stop())
       streamRef.current = null
     }
+
+    // Reset timer
+    callStartTimeRef.current = null
+    setCallElapsed(0)
 
     setIsRecording(false)
   }

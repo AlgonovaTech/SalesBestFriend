@@ -265,16 +265,19 @@ async def websocket_ingest(websocket: WebSocket):
                             
                             # ===== ANALYZE: Extract client card info =====
                             print(f"\n👤 Extracting client info...")
+                            # Get current values (just the value strings for comparison)
+                            current_values = {k: v.get('value', '') if isinstance(v, dict) else v for k, v in client_card_data.items()}
                             new_client_info = analyzer.extract_client_card_fields(
                                 accumulated_transcript[-1000:],  # Last 1000 chars
-                                client_card_data
+                                current_values
                             )
                             
                             if new_client_info:
                                 print(f"   ✅ Extracted {len(new_client_info)} fields:")
-                                for field_id, value in new_client_info.items():
-                                    print(f"      - {field_id}: {value[:50]}...")
-                                    client_card_data[field_id] = value
+                                for field_id, field_data in new_client_info.items():
+                                    field_data['extractedAt'] = datetime.utcnow().isoformat() + 'Z'
+                                    print(f"      - {field_id}: {field_data.get('value', '')[:50]}...")
+                                    client_card_data[field_id] = field_data
                             else:
                                 print(f"   ⏭️ No new client info extracted")
                             
