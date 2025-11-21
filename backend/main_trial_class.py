@@ -254,7 +254,6 @@ async def websocket_ingest(websocket: WebSocket):
                             elapsed = time.time() - call_start_time
                             
                             # Detect stage from conversation context (AI-based)
-                            global current_stage_id
                             detected_stage = detect_stage_by_context(
                                 conversation_text=accumulated_transcript[-2000:],  # Last 2000 chars
                                 elapsed_seconds=int(elapsed),
@@ -267,7 +266,6 @@ async def websocket_ingest(websocket: WebSocket):
                             if detected_stage != current_stage_id:
                                 print(f"🔄 Stage transition: {current_stage_id or '(start)'} → {detected_stage}")
                                 # Reset stage timer on transition
-                                global stage_start_time
                                 stage_start_time = time.time()
                                 print(f"   ⏱️ Stage timer reset")
                                 
@@ -605,7 +603,6 @@ async def process_transcript(transcript: str = Form(...), language: str = Form("
     
     # Quick analysis
     elapsed = time.time() - call_start_time
-    global current_stage_id
     detected_stage = detect_stage_by_context(
         conversation_text=transcript[-2000:],
         elapsed_seconds=int(elapsed),
@@ -739,7 +736,6 @@ async def process_youtube(url: str = Form(...), language: str = Form("id"), real
                         elapsed = time.time() - call_start_time
                         
                         # Detect stage from conversation context
-                        global current_stage_id
                         detected_stage = detect_stage_by_context(
                             conversation_text=accumulated_transcript[-2000:],
                             elapsed_seconds=int(elapsed),
@@ -750,7 +746,6 @@ async def process_youtube(url: str = Form(...), language: str = Form("id"), real
                         if detected_stage != current_stage_id:
                             print(f"🔄 Stage transition: {current_stage_id or '(start)'} → {detected_stage}")
                             # Reset stage timer on transition
-                            global stage_start_time
                             stage_start_time = time.time()
                             print(f"   ⏱️ Stage timer reset")
                             
@@ -823,7 +818,6 @@ async def process_youtube(url: str = Form(...), language: str = Form("id"), real
         
         # Analyze
         elapsed = time.time() - call_start_time
-        global current_stage_id
         detected_stage = detect_stage_by_context(
             conversation_text=accumulated_transcript[-2000:],
             elapsed_seconds=int(elapsed),
