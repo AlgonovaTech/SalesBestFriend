@@ -35,8 +35,8 @@ class TrialClassAnalyzer:
         self.api_key = os.getenv("OPENROUTER_API_KEY")
         self.api_url = "https://openrouter.ai/api/v1/chat/completions"
         
-        # Use env var or provided model, default to Gemini 2.5 Flash for Bahasa Indonesia
-        self.model = model or os.getenv("LLM_MODEL", "google/gemini-2.5-flash-preview-09-2025")
+        # HARDCODED: Gemini 2.5 Flash for best Bahasa Indonesia support
+        self.model = model if model else "google/gemini-2.5-flash-preview-09-2025"
         print(f"🤖 Trial Class Analyzer initialized with model: {self.model}")
         
         # Load configs
