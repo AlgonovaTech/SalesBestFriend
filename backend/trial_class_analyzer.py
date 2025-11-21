@@ -30,13 +30,13 @@ class TrialClassAnalyzer:
         Initialize analyzer
         
         Args:
-            model: OpenRouter model (e.g. "google/gemini-2.5-flash-preview-09-2025", "anthropic/claude-3-haiku")
+            model: IGNORED - model is hardcoded to Gemini 2.5 Flash
         """
         self.api_key = os.getenv("OPENROUTER_API_KEY")
         self.api_url = "https://openrouter.ai/api/v1/chat/completions"
         
-        # HARDCODED: Gemini 2.5 Flash for best Bahasa Indonesia support
-        self.model = model if model else "google/gemini-2.5-flash-preview-09-2025"
+        # HARDCODED: Always use Gemini 2.5 Flash (ignores model parameter and env vars)
+        self.model = "google/gemini-2.5-flash-preview-09-2025"
         print(f"🤖 Trial Class Analyzer initialized with model: {self.model}")
         
         # Load configs
