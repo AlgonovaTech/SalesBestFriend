@@ -54,6 +54,14 @@ class YouTubeStreamer:
             ],
         }
         
+        # Add cookies if cookies.txt exists
+        cookies_path = os.path.join(os.path.dirname(__file__), '..', 'cookies.txt')
+        if os.path.exists(cookies_path):
+            ydl_opts['cookies'] = cookies_path
+            print("🍪 Found cookies.txt, using it for YouTube download.")
+
+        ydl_opts['user_agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+
         print(f"📥 Downloading YouTube video: {youtube_url}")
         
         try:

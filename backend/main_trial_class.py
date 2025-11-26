@@ -320,9 +320,7 @@ async def websocket_ingest(websocket: WebSocket):
                                     
                                     # Check with LLM
                                     completed, confidence, evidence, debug_info = analyzer.check_checklist_item(
-                                        item_id,
-                                        item['content'],
-                                        item['type'],
+                                        item,
                                         accumulated_transcript[-1500:]  # Last 1500 chars
                                     )
                                     
@@ -638,9 +636,7 @@ async def process_transcript(transcript: str = Form(...), language: str = Form("
         for item in stage['items']:
             if not checklist_progress.get(item['id'], False):
                 completed, conf, evidence, debug_info = analyzer.check_checklist_item(
-                    item['id'],
-                    item['content'],
-                    item['type'],
+                    item,
                     transcript
                 )
                 
@@ -721,6 +717,7 @@ async def process_youtube(url: str = Form(...), language: str = Form("id"), real
         
         # Stream audio chunks (simulating live call)
         chunk_count = 0
+        full_transcript_segments = []
         async for audio_chunk in streamer.stream_youtube_url(url, real_time=real_time):
             chunk_count += 1
             
@@ -736,14 +733,16 @@ async def process_youtube(url: str = Form(...), language: str = Form("id"), real
                     
                     # Transcribe (same as live ingest)
                     loop = asyncio.get_event_loop()
-                    transcript = await loop.run_in_executor(
+                    segments = await loop.run_in_executor(
                         None,
                         transcribe_audio_buffer,
                         buffer_data,
                         transcription_language
                     )
                     
-                    if transcript:
+                    if segments:
+                        full_transcript_segments.extend(segments)
+                        transcript = " ".join([s['text'] for s in segments])
                         print(f"📝 Transcript ({len(transcript)} chars):")
                         print(f"   {transcript[:200]}...")
                         
@@ -790,9 +789,7 @@ async def process_youtube(url: str = Form(...), language: str = Form("id"), real
                                 
                                 # Check with LLM
                                 completed, confidence, evidence, debug_info = analyzer.check_checklist_item(
-                                    item_id,
-                                    item['content'],
-                                    item['type'],
+                                    item,
                                     accumulated_transcript[-500:]  # Last 500 chars
                                 )
                                 
@@ -962,7 +959,8 @@ async def process_youtube(url: str = Form(...), language: str = Form("id"), real
         
         return {
             "success": True,
-            "transcriptLength": len(transcript),
+            "transcriptLength": len(accumulated_transcript),
+            "transcript_segments": full_transcript_segments,
             "currentStage": current_stage_id,
             "itemsCompleted": sum(1 for v in checklist_progress.values() if v),
             "totalItems": sum(len(stage['items']) for stage in call_structure),
