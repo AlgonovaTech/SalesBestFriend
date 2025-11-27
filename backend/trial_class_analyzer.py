@@ -159,8 +159,16 @@ Return ONLY valid JSON:
         
         try:
             response = self._call_llm(prompt, temperature=0.2, max_tokens=200)
-            result = json.loads(response)
-            
+            try:
+                result = json.loads(response)
+            except json.JSONDecodeError:
+                print(f"   ⚠️ LLM returned invalid JSON for checklist item: {response}")
+                raise ValueError(f"LLM returned invalid JSON: {response}")
+
+            # Check if the response was an error from _call_llm
+            if "error" in result:
+                raise requests.exceptions.RequestException(result.get("details", "Unknown API error"))
+
             completed = result.get("completed", False)
             confidence = result.get("confidence", 0.0)
             evidence = result.get("evidence", "")
@@ -425,7 +433,17 @@ Return ONLY valid JSON:
         
         try:
             response = self._call_llm(validation_prompt, temperature=0.05, max_tokens=150)
-            result = json.loads(response)
+            try:
+                result = json.loads(response)
+            except json.JSONDecodeError:
+                print(f"   ⚠️ LLM returned invalid JSON for evidence validation: {response}")
+                return False
+
+            # Check if the response was an error from _call_llm
+            if "error" in result:
+                # If the API call fails, we can't validate, so be conservative and reject
+                return False
+
             is_valid = result.get("is_valid", False)
             explanation = result.get("explanation", "")
             
@@ -545,8 +563,16 @@ If no clear information found, return EMPTY object: {{}}
         
         try:
             response = self._call_llm(prompt, temperature=0.3, max_tokens=800)
-            result = json.loads(response)
-            
+            try:
+                result = json.loads(response)
+            except json.JSONDecodeError:
+                print(f"   ⚠️ LLM returned invalid JSON for client card: {response}")
+                raise ValueError(f"LLM returned invalid JSON: {response}")
+
+            # Check if the response was an error from _call_llm
+            if "error" in result:
+                raise requests.exceptions.RequestException(result.get("details", "Unknown API error"))
+
             # Filter out fields that already have values (don't overwrite unless significantly different)
             updates = {}
             for field_id, field_data in result.items():
@@ -732,7 +758,17 @@ Return ONLY valid JSON:
         
         try:
             response = self._call_llm(validation_prompt, temperature=0.05, max_tokens=150)
-            result = json.loads(response)
+            try:
+                result = json.loads(response)
+            except json.JSONDecodeError:
+                print(f"   ⚠️ LLM returned invalid JSON for client field validation: {response}")
+                return False
+
+            # Check if the response was an error from _call_llm
+            if "error" in result:
+                # If the API call fails, we can't validate, so be conservative and reject
+                return False
+
             is_valid = result.get("is_valid", False)
             explanation = result.get("explanation", "")
             
@@ -845,8 +881,16 @@ Return ONLY valid JSON:
         
         try:
             response = self._call_llm(prompt, temperature=0.2, max_tokens=200)
-            result = json.loads(response)
-            
+            try:
+                result = json.loads(response)
+            except json.JSONDecodeError:
+                print(f"   ⚠️ LLM returned invalid JSON for stage detection: {response}")
+                raise ValueError(f"LLM returned invalid JSON: {response}")
+
+            # Check if the response was an error from _call_llm
+            if "error" in result:
+                raise requests.exceptions.RequestException(result.get("details", "Unknown API error"))
+
             stage_id = result.get("stage_id", "")
             confidence = result.get("confidence", 0.0)
             
@@ -897,15 +941,22 @@ Return ONLY valid JSON:
             "max_tokens": max_tokens
         }
         
-        response = requests.post(
-            self.api_url,
-            headers=headers,
-            json=payload,
-            timeout=30
-        )
-        
-        response.raise_for_status()
-        data = response.json()
+        try:
+            response = requests.post(
+                self.api_url,
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+            response.raise_for_status()
+            data = response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"   🚨 LLM API call failed: {e}")
+            # Return a JSON string that indicates an error
+            return json.dumps({
+                "error": "API call failed",
+                "details": str(e)
+            })
         
         content = data["choices"][0]["message"]["content"]
         
