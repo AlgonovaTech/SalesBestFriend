@@ -390,18 +390,22 @@ async def websocket_ingest(websocket: WebSocket):
                             if new_client_info:
                                 print(f"   ✅ Extracted {len(new_client_info)} fields:")
                                 for field_id, field_data in new_client_info.items():
-                                    field_data['extractedAt'] = datetime.utcnow().isoformat() + 'Z'
-                                    print(f"      - {field_id}: {field_data.get('value', '')[:50]}...")
-                                    client_card_data[field_id] = field_data
-                                    
-                                    # Log decision
-                                    log_decision("client_card", {
-                                        "field_id": field_id,
-                                        "field_label": field_data.get('label', field_id),
-                                        "value": field_data.get('value', ''),
-                                        "evidence": field_data.get('evidence', ''),
-                                        "confidence": field_data.get('confidence', 1.0)
-                                    })
+                                    if isinstance(field_data, dict) and 'value' in field_data:
+                                        value_text = field_data.get('value', '')
+                                        field_data['extractedAt'] = datetime.utcnow().isoformat() + 'Z'
+                                        client_card_data[field_id] = field_data
+                                        print(f"      - {field_id}: {value_text[:50]}...")
+
+                                        # Log decision
+                                        log_decision("client_card", {
+                                            "field_id": field_id,
+                                            "field_label": field_data.get('label', field_id),
+                                            "value": value_text,
+                                            "evidence": field_data.get('evidence', ''),
+                                            "confidence": field_data.get('confidence', 1.0)
+                                        })
+                                    else:
+                                        print(f"   ⚠️ Skipping malformed client_card field: {field_id}")
                             else:
                                 print(f"   ⏭️ No new client info extracted")
                             
@@ -479,11 +483,11 @@ async def websocket_ingest(websocket: WebSocket):
     except WebSocketDisconnect:
         print("🎤 /ingest disconnected")
         is_live_recording = False
-        call_start_time = None
+        # DO NOT set call_start_time to None here to avoid race conditions
     except Exception as e:
         print(f"❌ /ingest error: {e}")
         is_live_recording = False
-        call_start_time = None
+        # DO NOT set call_start_time to None here
         import traceback
         traceback.print_exc()
 
@@ -823,10 +827,27 @@ async def process_youtube(url: str = Form(...), language: str = Form("id"), real
                         )
                         
                         if new_info:
-                            for field_id, value in new_info.items():
-                                if value and not client_card_data.get(field_id):
-                                    client_card_data[field_id] = value
-                                    print(f"   ✅ {field_id}: {value[:50]}...")
+                            print(f"   ✅ Extracted {len(new_info)} fields:")
+                            for field_id, field_data in new_info.items():
+                                # Ensure field_data is a dictionary with a 'value' key
+                                if isinstance(field_data, dict) and 'value' in field_data:
+                                    value_text = field_data.get('value', '')
+                                    # Update client_card_data only if the field is new
+                                    if field_id not in client_card_data or not client_card_data.get(field_id).get('value'):
+                                        field_data['extractedAt'] = datetime.utcnow().isoformat() + 'Z'
+                                        client_card_data[field_id] = field_data
+                                        print(f"      - {field_id}: {value_text[:50]}...")
+
+                                        # Log decision
+                                        log_decision("client_card", {
+                                            "field_id": field_id,
+                                            "field_label": field_data.get('label', field_id),
+                                            "value": value_text,
+                                            "evidence": field_data.get('evidence', ''),
+                                            "confidence": field_data.get('confidence', 1.0)
+                                        })
+                                else:
+                                    print(f"   ⚠️ Skipping malformed client_card field: {field_id}")
                         
                 except Exception as e:
                     print(f"⚠️ Analysis error: {e}")
