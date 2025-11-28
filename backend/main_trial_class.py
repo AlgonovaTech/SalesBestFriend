@@ -335,7 +335,7 @@ async def websocket_ingest(websocket: WebSocket):
                                     # Check with LLM
                                     completed, confidence, evidence, debug_info = analyzer.check_checklist_item(
                                         item,
-                                        accumulated_transcript[-2500:]  # Increased from 1500 to 2500
+                                        accumulated_transcript[-1500:]  # Last 1500 chars
                                     )
                                     
                                     # Log decision
@@ -483,11 +483,11 @@ async def websocket_ingest(websocket: WebSocket):
     except WebSocketDisconnect:
         print("🎤 /ingest disconnected")
         is_live_recording = False
-        call_start_time = None
+        # DO NOT set call_start_time to None here to avoid race conditions
     except Exception as e:
         print(f"❌ /ingest error: {e}")
         is_live_recording = False
-        call_start_time = None
+        # DO NOT set call_start_time to None here
         import traceback
         traceback.print_exc()
 
@@ -800,7 +800,7 @@ async def process_youtube(url: str = Form(...), language: str = Form("id"), real
                                 # Check with LLM
                                 completed, confidence, evidence, debug_info = analyzer.check_checklist_item(
                                     item,
-                                    accumulated_transcript[-1500:]
+                                    accumulated_transcript[-500:]  # Last 500 chars
                                 )
                                 
                                 # Log decision
@@ -830,20 +830,23 @@ async def process_youtube(url: str = Form(...), language: str = Form("id"), real
                         if new_info:
                             print(f"   ✅ Extracted {len(new_info)} fields:")
                             for field_id, field_data in new_info.items():
+                                # Ensure field_data is a dictionary with a 'value' key
                                 if isinstance(field_data, dict) and 'value' in field_data:
                                     value_text = field_data.get('value', '')
-                                    field_data['extractedAt'] = datetime.utcnow().isoformat() + 'Z'
-                                    client_card_data[field_id] = field_data
-                                    print(f"      - {field_id}: {value_text[:50]}...")
+                                    # Update client_card_data only if the field is new
+                                    if field_id not in client_card_data or not client_card_data.get(field_id).get('value'):
+                                        field_data['extractedAt'] = datetime.utcnow().isoformat() + 'Z'
+                                        client_card_data[field_id] = field_data
+                                        print(f"      - {field_id}: {value_text[:50]}...")
 
-                                    # Log decision
-                                    log_decision("client_card", {
-                                        "field_id": field_id,
-                                        "field_label": field_data.get('label', field_id),
-                                        "value": value_text,
-                                        "evidence": field_data.get('evidence', ''),
-                                        "confidence": field_data.get('confidence', 1.0)
-                                    })
+                                        # Log decision
+                                        log_decision("client_card", {
+                                            "field_id": field_id,
+                                            "field_label": field_data.get('label', field_id),
+                                            "value": value_text,
+                                            "evidence": field_data.get('evidence', ''),
+                                            "confidence": field_data.get('confidence', 1.0)
+                                        })
                                 else:
                                     print(f"   ⚠️ Skipping malformed client_card field: {field_id}")
                         
