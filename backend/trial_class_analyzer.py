@@ -185,9 +185,9 @@ Return ONLY valid JSON:
             }
             
             # Guard 1: Only accept high confidence completions
-            if completed and confidence < 0.8:
+            if completed and confidence < 0.7: # Lowered from 0.8 to 0.7
                 debug_info["stage"] = "guard_1_low_confidence"
-                debug_info["guards_passed"].append("confidence < 0.8")
+                debug_info["guards_passed"].append("confidence < 0.7")
                 return False, confidence, "Confidence too low", debug_info
             
             # Guard 2: Evidence must exist and be substantial
@@ -310,51 +310,6 @@ Return ONLY valid JSON:
             print(f"      🚫 Rejected: Evidence too short ({word_count} words)")
             return False
         
-        # CRITICAL: Keyword-based semantic check
-        # Extract keywords from action to check evidence relevance
-        action_lower = item_content.lower()
-        
-        # Define keyword mappings for common actions
-        keyword_checks = [
-            # Age/Grade questions
-            {
-                "triggers": ["age", "umur", "usia", "grade", "kelas", "tahun"],
-                "required_in_evidence": ["umur", "usia", "tahun", "kelas", "grade", "sd", "smp", "sma", "tk"]
-            },
-            # Interests/Likes
-            {
-                "triggers": ["interest", "like", "suka", "hobi", "kesukaan", "favorite"],
-                "required_in_evidence": ["suka", "hobi", "main", "game", "olahraga", "favorit", "senang"]
-            },
-            # Concerns/Problems
-            {
-                "triggers": ["concern", "challenge", "masalah", "khawatir", "kesulitan", "tantangan"],
-                "required_in_evidence": ["khawatir", "masalah", "kesulitan", "concern", "tantangan", "susah", "kurang"]
-            },
-            # Goals
-            {
-                "triggers": ["goal", "tujuan", "harapan", "ingin", "mau"],
-                "required_in_evidence": ["tujuan", "harapan", "ingin", "mau", "supaya", "agar", "bisa", "goals"]
-            },
-            # Experience
-            {
-                "triggers": ["experience", "pengalaman", "pernah", "sudah"],
-                "required_in_evidence": ["pernah", "sudah", "pengalaman", "biasa", "sering", "belum"]
-            }
-        ]
-        
-        # Check if action matches any keyword pattern
-        for check in keyword_checks:
-            # If action contains trigger words
-            if any(trigger in action_lower for trigger in check["triggers"]):
-                # Evidence MUST contain at least one required word
-                has_required = any(word in evidence_lower for word in check["required_in_evidence"])
-                if not has_required:
-                    print(f"      🚫 Rejected: Evidence lacks semantic keywords for '{item_content[:50]}...'")
-                    print(f"         Evidence: '{evidence[:100]}...'")
-                    print(f"         Required one of: {check['required_in_evidence'][:5]}")
-                    return False
-        
         # Build type-specific instructions
         if item_type == "discuss":
             type_check = """
@@ -371,14 +326,13 @@ REJECT if evidence is:
         else:  # "say"
             type_check = """
 ACTION TYPE: SAY/EXPLAIN
-The evidence MUST show:
-1. The manager STATING or EXPLAINING information
-2. NOT asking a question, but GIVING information
+The evidence MUST show the manager STATING or EXPLAINING something.
+- For complex topics, this should be a clear explanation.
+- For simple courtesies (e.g., "Thank you"), the courtesy itself is sufficient evidence.
 
 REJECT if evidence is:
-- A question instead of statement
-- Just mentioning a topic without explaining
-- Promise to explain later ("nanti saya jelaskan")
+- A question instead of a statement (unless the action is a question).
+- A promise to do something later ("nanti saya jelaskan").
 """
         
         validation_prompt = f"""You are a STRICT evidence validator for a sales call checklist.

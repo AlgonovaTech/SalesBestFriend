@@ -820,10 +820,11 @@ async def process_youtube(url: str = Form(...), language: str = Form("id"), real
                         
                         # ===== ANALYZE: Extract client info =====
                         print(f"\n👤 Extracting client information...")
-                        
+                        # Get current values (just the value strings for comparison)
+                        current_values = {k: v.get('value', '') if isinstance(v, dict) else v for k, v in client_card_data.items()}
                         new_info = analyzer.extract_client_card_fields(
                             accumulated_transcript,
-                            client_card_data
+                            current_values
                         )
                         
                         if new_info:
