@@ -286,7 +286,7 @@ class RealtimeTranscriber:
             
             if wav_size < 4000:
                 print(f"⚠️ WAV too small ({wav_size} bytes), skipping")
-                return ""
+                return []
             
             # Transcribe
             print(f"🎤 Transcribing {wav_size} bytes (language: {language})...")
@@ -314,7 +314,7 @@ class RealtimeTranscriber:
             print(f"❌ Transcription error: {e}")
             import traceback
             traceback.print_exc()
-            return ""
+            return []
             
         finally:
             if temp_wav_path and os.path.exists(temp_wav_path):

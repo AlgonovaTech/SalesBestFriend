@@ -269,6 +269,8 @@ async def websocket_ingest(websocket: WebSocket):
                             transcription_language
                         )
                         
+                        print(f"🔍 Transcription result: segments={len(segments) if segments else 0}")
+                        
                         if segments:
                             # Extract text from segments
                             transcript = " ".join([seg['text'] for seg in segments])
@@ -277,210 +279,214 @@ async def websocket_ingest(websocket: WebSocket):
                             
                             # Accumulate
                             accumulated_transcript += " " + transcript
-                            # Keep last 1000 words for context
-                            words = accumulated_transcript.split()
-                            if len(words) > 1000:
-                                accumulated_transcript = " ".join(words[-1000:])
+                        else:
+                            print(f"⚠️ No segments returned from transcription (buffer was {len(buffer_data)} bytes)")
+                        
+                        # Keep last 1000 words for context
+                        words = accumulated_transcript.split()
+                        if len(words) > 1000:
+                            accumulated_transcript = " ".join(words[-1000:])
+                        
+                        # ===== ANALYZE: Check checklist items =====
+                        # Guard against None (happens when WebSocket reconnects)
+                        if call_start_time is None:
+                            print("⚠️ call_start_time is None, skipping analysis")
+                            audio_buffer.clear()
+                            continue
+                        
+                        elapsed = time.time() - call_start_time
+                        
+                        # Detect stage from conversation context (AI-based)
+                        detected_stage = detect_stage_by_context(
+                            conversation_text=accumulated_transcript[-2000:],  # Last 2000 chars
+                            elapsed_seconds=int(elapsed),
+                            analyzer=analyzer,
+                            previous_stage_id=current_stage_id if current_stage_id else None,
+                            min_confidence=0.6
+                        )
+                        
+                        # Update current stage
+                        if detected_stage != current_stage_id:
+                            print(f"🔄 Stage transition: {current_stage_id or '(start)'} → {detected_stage}")
+                            # Reset stage timer on transition
+                            stage_start_time = time.time()
+                            print(f"   ⏱️ Stage timer reset")
                             
-                            # ===== ANALYZE: Check checklist items =====
-                            # Guard against None (happens when WebSocket reconnects)
-                            if call_start_time is None:
-                                print("⚠️ call_start_time is None, skipping analysis")
-                                audio_buffer.clear()
-                                continue
-                            
-                            elapsed = time.time() - call_start_time
-                            
-                            # Detect stage from conversation context (AI-based)
-                            detected_stage = detect_stage_by_context(
-                                conversation_text=accumulated_transcript[-2000:],  # Last 2000 chars
-                                elapsed_seconds=int(elapsed),
-                                analyzer=analyzer,
-                                previous_stage_id=current_stage_id if current_stage_id else None,
-                                min_confidence=0.6
-                            )
-                            
-                            # Update current stage
-                            if detected_stage != current_stage_id:
-                                print(f"🔄 Stage transition: {current_stage_id or '(start)'} → {detected_stage}")
-                                # Reset stage timer on transition
-                                stage_start_time = time.time()
-                                print(f"   ⏱️ Stage timer reset")
+                            # Log stage transition
+                            log_decision("stage_transition", {
+                                "from_stage": current_stage_id or "(start)",
+                                "to_stage": detected_stage,
+                                "elapsed_seconds": int(elapsed)
+                            })
+                        current_stage_id = detected_stage
+                        
+                        print(f"\n📋 Checking checklist items...")
+                        print(f"   📊 accumulated_transcript: {len(accumulated_transcript)} chars, last 150: '{accumulated_transcript[-150:]}'")
+                        newly_completed = []
+                        
+                        for stage in call_structure:
+                            for item in stage['items']:
+                                item_id = item['id']
                                 
-                                # Log stage transition
-                                log_decision("stage_transition", {
-                                    "from_stage": current_stage_id or "(start)",
-                                    "to_stage": detected_stage,
-                                    "elapsed_seconds": int(elapsed)
-                                })
-                            current_stage_id = detected_stage
-                            
-                            print(f"\n📋 Checking checklist items...")
-                            newly_completed = []
-                            
-                            for stage in call_structure:
-                                for item in stage['items']:
-                                    item_id = item['id']
-                                    
-                                    # Skip if already completed
-                                    if checklist_progress.get(item_id, False):
+                                # Skip if already completed
+                                if checklist_progress.get(item_id, False):
+                                    continue
+                                
+                                # Skip if checked recently (30s cooldown)
+                                if item_id in checklist_last_check:
+                                    if time.time() - checklist_last_check[item_id] < 30:
                                         continue
+                                
+                                # Update last check time
+                                checklist_last_check[item_id] = time.time()
+                                
+                                # Check with LLM
+                                completed, confidence, evidence, debug_info = analyzer.check_checklist_item(
+                                    item,
+                                    accumulated_transcript[-1500:]  # Last 1500 chars
+                                )
+                                
+                                # Log decision
+                                log_decision("checklist_item", {
+                                    "item_id": item_id,
+                                    "item_content": item['content'],
+                                    "completed": completed,
+                                    "confidence": confidence,
+                                    "evidence": evidence,
+                                    **debug_info
+                                })
+                                
+                                if completed:
+                                    # Guard: Check for duplicate evidence (same evidence used for multiple items)
+                                    duplicate_evidence = False
+                                    if evidence:
+                                        for existing_id, existing_evidence in checklist_evidence.items():
+                                            if existing_evidence == evidence:
+                                                duplicate_evidence = True
+                                                print(f"   ⚠️ DUPLICATE EVIDENCE detected!")
+                                                print(f"      Same evidence already used for: {existing_id}")
+                                                print(f"      Evidence: {evidence[:100]}")
+                                                log_decision("duplicate_evidence", {
+                                                    "item_id": item_id,
+                                                    "duplicate_of": existing_id,
+                                                    "evidence": evidence
+                                                })
+                                                break
                                     
-                                    # Skip if checked recently (30s cooldown)
-                                    if item_id in checklist_last_check:
-                                        if time.time() - checklist_last_check[item_id] < 30:
-                                            continue
-                                    
-                                    # Update last check time
-                                    checklist_last_check[item_id] = time.time()
-                                    
-                                    # Check with LLM
-                                    completed, confidence, evidence, debug_info = analyzer.check_checklist_item(
-                                        item,
-                                        accumulated_transcript[-1500:]  # Last 1500 chars
-                                    )
-                                    
-                                    # Log decision
-                                    log_decision("checklist_item", {
-                                        "item_id": item_id,
-                                        "item_content": item['content'],
-                                        "completed": completed,
-                                        "confidence": confidence,
-                                        "evidence": evidence,
-                                        **debug_info
-                                    })
-                                    
-                                    if completed:
-                                        # Guard: Check for duplicate evidence (same evidence used for multiple items)
-                                        duplicate_evidence = False
-                                        if evidence:
-                                            for existing_id, existing_evidence in checklist_evidence.items():
-                                                if existing_evidence == evidence:
-                                                    duplicate_evidence = True
-                                                    print(f"   ⚠️ DUPLICATE EVIDENCE detected!")
-                                                    print(f"      Same evidence already used for: {existing_id}")
-                                                    print(f"      Evidence: {evidence[:100]}")
-                                                    log_decision("duplicate_evidence", {
-                                                        "item_id": item_id,
-                                                        "duplicate_of": existing_id,
-                                                        "evidence": evidence
-                                                    })
-                                                    break
-                                        
-                                        if not duplicate_evidence:
-                                            checklist_progress[item_id] = True
-                                            checklist_evidence[item_id] = evidence
-                                            newly_completed.append(item['content'])
-                                            print(f"   ✅ {item['content']}")
-                                        else:
-                                            print(f"   ❌ {item['content']} - REJECTED (duplicate evidence)")
+                                    if not duplicate_evidence:
+                                        checklist_progress[item_id] = True
+                                        checklist_evidence[item_id] = evidence
+                                        newly_completed.append(item['content'])
+                                        print(f"   ✅ {item['content']}")
                                     else:
-                                        print(f"   ❌ {item['content']} (confidence: {confidence:.0%})")
-                            
-                            if newly_completed:
-                                print(f"\n🎯 Newly completed: {len(newly_completed)} items")
-                            
-                            # ===== ANALYZE: Extract client card info =====
-                            print(f"\n👤 Extracting client info...")
-                            # Get current values (just the value strings for comparison)
-                            current_values = {k: v.get('value', '') if isinstance(v, dict) else v for k, v in client_card_data.items()}
-                            new_client_info = analyzer.extract_client_card_fields(
-                                accumulated_transcript[-1000:],  # Last 1000 chars
-                                current_values
-                            )
-                            
-                            if new_client_info:
-                                print(f"   ✅ Extracted {len(new_client_info)} fields:")
-                                for field_id, field_data in new_client_info.items():
-                                    if isinstance(field_data, dict) and 'value' in field_data:
-                                        value_text = field_data.get('value', '')
-                                        field_data['extractedAt'] = datetime.utcnow().isoformat() + 'Z'
-                                        client_card_data[field_id] = field_data
-                                        print(f"      - {field_id}: {value_text[:50]}...")
+                                        print(f"   ❌ {item['content']} - REJECTED (duplicate evidence)")
+                                else:
+                                    print(f"   ❌ {item['content']} (confidence: {confidence:.0%})")
+                        
+                        if newly_completed:
+                            print(f"\n🎯 Newly completed: {len(newly_completed)} items")
+                        
+                        # ===== ANALYZE: Extract client card info =====
+                        print(f"\n👤 Extracting client info...")
+                        # Get current values (just the value strings for comparison)
+                        current_values = {k: v.get('value', '') if isinstance(v, dict) else v for k, v in client_card_data.items()}
+                        new_client_info = analyzer.extract_client_card_fields(
+                            accumulated_transcript[-1000:],  # Last 1000 chars
+                            current_values
+                        )
+                        
+                        if new_client_info:
+                            print(f"   ✅ Extracted {len(new_client_info)} fields:")
+                            for field_id, field_data in new_client_info.items():
+                                if isinstance(field_data, dict) and 'value' in field_data:
+                                    value_text = field_data.get('value', '')
+                                    field_data['extractedAt'] = datetime.utcnow().isoformat() + 'Z'
+                                    client_card_data[field_id] = field_data
+                                    print(f"      - {field_id}: {value_text[:50]}...")
 
-                                        # Log decision
-                                        log_decision("client_card", {
-                                            "field_id": field_id,
-                                            "field_label": field_data.get('label', field_id),
-                                            "value": value_text,
-                                            "evidence": field_data.get('evidence', ''),
-                                            "confidence": field_data.get('confidence', 1.0)
-                                        })
-                                    else:
-                                        print(f"   ⚠️ Skipping malformed client_card field: {field_id}")
-                            else:
-                                print(f"   ⏭️ No new client info extracted")
-                            
-                            # ===== BUILD AND SEND RESPONSE =====
-                            elapsed = time.time() - call_start_time
-                            # current_stage_id already set above by detect_stage_by_context()
-                            
-                            # Build stages with progress and timing
-                            stages_with_progress = []
-                            for stage in call_structure:
-                                stage_items = []
-                                for item in stage['items']:
-                                    stage_items.append({
-                                        "id": item['id'],
-                                        "type": item['type'],
-                                        "content": item['content'],
-                                        "completed": checklist_progress.get(item['id'], False),
-                                        "evidence": checklist_evidence.get(item['id'], "")
+                                    # Log decision
+                                    log_decision("client_card", {
+                                        "field_id": field_id,
+                                        "field_label": field_data.get('label', field_id),
+                                        "value": value_text,
+                                        "evidence": field_data.get('evidence', ''),
+                                        "confidence": field_data.get('confidence', 1.0)
                                     })
-                                
-                                timing_status = get_stage_timing_status(stage['id'], int(elapsed))
-                                
-                                stages_with_progress.append({
-                                    "id": stage['id'],
-                                    "name": stage['name'],
-                                    "startOffsetSeconds": stage['startOffsetSeconds'],
-                                    "durationSeconds": stage['durationSeconds'],
-                                    "items": stage_items,
-                                    "isCurrent": stage['id'] == current_stage_id,
-                                    "timingStatus": timing_status['status'],
-                                    "timingMessage": timing_status['message']
+                                else:
+                                    print(f"   ⚠️ Skipping malformed client_card field: {field_id}")
+                        else:
+                            print(f"   ⏭️ No new client info extracted")
+                        
+                        # ===== BUILD AND SEND RESPONSE =====
+                        elapsed = time.time() - call_start_time
+                        # current_stage_id already set above by detect_stage_by_context()
+                        
+                        # Build stages with progress and timing
+                        stages_with_progress = []
+                        for stage in call_structure:
+                            stage_items = []
+                            for item in stage['items']:
+                                stage_items.append({
+                                    "id": item['id'],
+                                    "type": item['type'],
+                                    "content": item['content'],
+                                    "completed": checklist_progress.get(item['id'], False),
+                                    "evidence": checklist_evidence.get(item['id'], "")
                                 })
                             
-                            # Send to all clients
-                            # Calculate stage elapsed time
-                            stage_elapsed = 0
-                            if stage_start_time is not None:
-                                stage_elapsed = int(time.time() - stage_start_time)
+                            timing_status = get_stage_timing_status(stage['id'], int(elapsed))
                             
-                            message_data = {
-                                "type": "update",
-                                "callElapsedSeconds": int(elapsed),
-                                "stageElapsedSeconds": stage_elapsed,
-                                "currentStageId": current_stage_id,
-                                "stages": stages_with_progress,
-                                "clientCard": client_card_data,
-                                "transcriptPreview": accumulated_transcript[-300:],
-                                "debugLog": debug_log[-50:]  # Last 50 entries for debugging
-                            }
-                            
-                            print(f"📤 Sending update with {len(debug_log)} total log entries, last 50: {min(50, len(debug_log))} entries")
-                            message_json = json.dumps(message_data)
-                            
-                            disconnected = set()
-                            for ws in coach_connections:
-                                try:
-                                    await ws.send_text(message_json)
-                                except Exception as e:
-                                    print(f"❌ Send error: {e}")
-                                    disconnected.add(ws)
-                            
-                            coach_connections.difference_update(disconnected)
-                            
-                            print(f"✅ Update sent to {len(coach_connections)} clients\n")
+                            stages_with_progress.append({
+                                "id": stage['id'],
+                                "name": stage['name'],
+                                "startOffsetSeconds": stage['startOffsetSeconds'],
+                                "durationSeconds": stage['durationSeconds'],
+                                "items": stage_items,
+                                "isCurrent": stage['id'] == current_stage_id,
+                                "timingStatus": timing_status['status'],
+                                "timingMessage": timing_status['message']
+                            })
                         
-                        # Clear buffer
-                        audio_buffer.clear()
+                        # Send to all clients
+                        # Calculate stage elapsed time
+                        stage_elapsed = 0
+                        if stage_start_time is not None:
+                            stage_elapsed = int(time.time() - stage_start_time)
                         
-                    except Exception as e:
-                        print(f"❌ Analysis error: {e}")
-                        import traceback
-                        traceback.print_exc()
-                        audio_buffer.clear()
+                        message_data = {
+                            "type": "update",
+                            "callElapsedSeconds": int(elapsed),
+                            "stageElapsedSeconds": stage_elapsed,
+                            "currentStageId": current_stage_id,
+                            "stages": stages_with_progress,
+                            "clientCard": client_card_data,
+                            "transcriptPreview": accumulated_transcript[-300:],
+                            "debugLog": debug_log[-50:]  # Last 50 entries for debugging
+                        }
+                        
+                        print(f"📤 Sending update with {len(debug_log)} total log entries, last 50: {min(50, len(debug_log))} entries")
+                        message_json = json.dumps(message_data)
+                        
+                        disconnected = set()
+                        for ws in coach_connections:
+                            try:
+                                await ws.send_text(message_json)
+                            except Exception as e:
+                                print(f"❌ Send error: {e}")
+                                disconnected.add(ws)
+                        
+                        coach_connections.difference_update(disconnected)
+                        
+                        print(f"✅ Update sent to {len(coach_connections)} clients\n")
+                    
+                    # Clear buffer
+                    audio_buffer.clear()
+                
+                except Exception as e:
+                    print(f"❌ Analysis error: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    audio_buffer.clear()
     
     except WebSocketDisconnect:
         print("🎤 /ingest disconnected")
