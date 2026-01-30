@@ -1,17 +1,20 @@
 import { Link } from 'react-router-dom'
 import { useOverviewStats } from '@/hooks/useAnalytics'
 import { useCalls } from '@/hooks/useCalls'
+import { useTodaysCalls } from '@/hooks/useScheduledCalls'
+import { ScheduledCallCard } from '@/components/scheduled/ScheduledCallCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { Phone, BarChart3, ListChecks, TrendingUp, Mic } from 'lucide-react'
+import { Phone, BarChart3, ListChecks, TrendingUp, Mic, CalendarClock } from 'lucide-react'
 import { formatDate, formatDuration } from '@/lib/utils'
 import type { Call } from '@/types'
 
 export function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useOverviewStats()
   const { data: recentCalls, isLoading: callsLoading } = useCalls({ per_page: 5 })
+  const { data: todaysCalls, isLoading: scheduleLoading } = useTodaysCalls()
 
   return (
     <div className="space-y-6">
@@ -57,6 +60,53 @@ export function DashboardPage() {
           loading={statsLoading}
         />
       </div>
+
+      {/* Today's Schedule */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CalendarClock className="h-4 w-4 text-blue-600" />
+            Today&apos;s Schedule
+            {todaysCalls && todaysCalls.length > 0 && (
+              <span className="text-sm font-normal text-muted-foreground">
+                ({todaysCalls.length} calls)
+              </span>
+            )}
+          </CardTitle>
+          <Link to="/schedule">
+            <Button variant="ghost" size="sm" className="text-xs">
+              View All
+            </Button>
+          </Link>
+        </CardHeader>
+        <CardContent>
+          {scheduleLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-10" />
+              ))}
+            </div>
+          ) : todaysCalls && todaysCalls.length > 0 ? (
+            <div className="space-y-1">
+              {todaysCalls.slice(0, 4).map((call) => (
+                <ScheduledCallCard key={call.id} call={call} compact />
+              ))}
+              {todaysCalls.length > 4 && (
+                <Link
+                  to="/schedule"
+                  className="block pt-1 text-center text-xs text-blue-600 hover:underline"
+                >
+                  +{todaysCalls.length - 4} more
+                </Link>
+              )}
+            </div>
+          ) : (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              No calls scheduled for today.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Calls */}
       <Card>

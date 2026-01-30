@@ -55,7 +55,7 @@ export function RegisterPage() {
             </CardDescription>
           </CardHeader>
           <CardFooter>
-            <Link to="/login" className="w-full">
+            <Link to="/sign-in" className="w-full">
               <Button variant="outline" className="w-full">
                 Back to Sign In
               </Button>
@@ -123,7 +123,7 @@ export function RegisterPage() {
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               Already have an account?{' '}
-              <Link to="/login" className="text-primary hover:underline">
+              <Link to="/sign-in" className="text-primary hover:underline">
                 Sign In
               </Link>
             </p>

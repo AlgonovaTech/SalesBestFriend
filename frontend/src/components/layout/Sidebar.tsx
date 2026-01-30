@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
 import {
   LayoutDashboard,
+  CalendarClock,
   Phone,
   Mic,
   BookOpen,
@@ -26,6 +27,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/schedule', label: 'Schedule', icon: CalendarClock },
   { to: '/calls', label: 'Calls', icon: Phone },
   { to: '/live', label: 'Live Call', icon: Mic },
   { to: '/playbooks', label: 'Playbooks', icon: BookOpen, roles: ['admin', 'team_lead'] },

@@ -127,6 +127,17 @@ export type CallSource = 'browser' | 'zoom' | 'upload'
 
 export interface PreCallData {
   client_name?: string
+  client_phone?: string
+  client_email?: string
+  child_name?: string
+  child_age?: number
+  recommended_course?: string
+  recommended_reason?: string
+  source_channel?: string
+  lead_source?: string
+  school_level?: string
+  interests?: string[]
+  scheduled_at?: string
   company?: string
   context?: string
   previous_interactions?: string

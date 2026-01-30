@@ -18,6 +18,7 @@ const LiveCallPage = lazy(() => import('@/pages/live/LiveCallPage').then(m => ({
 const PlaybookListPage = lazy(() => import('@/pages/playbook/PlaybookListPage').then(m => ({ default: m.PlaybookListPage })))
 const PlaybookEditorPage = lazy(() => import('@/pages/playbook/PlaybookEditorPage').then(m => ({ default: m.PlaybookEditorPage })))
 const TeamAnalyticsPage = lazy(() => import('@/pages/analytics/TeamAnalyticsPage').then(m => ({ default: m.TeamAnalyticsPage })))
+const ScheduledCallsPage = lazy(() => import('@/pages/scheduled/ScheduledCallsPage').then(m => ({ default: m.ScheduledCallsPage })))
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage').then(m => ({ default: m.SettingsPage })))
 
 function PageLoader() {
@@ -45,14 +46,16 @@ export default function App() {
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            {/* Public routes */}
+            {/* Public routes — /sign-in обход кэшированного 401 на /login (Vercel) */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/sign-in" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
 
             {/* Authenticated routes */}
             <Route element={<AuthGuard />}>
               <Route element={<AppLayout />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/schedule" element={<ScheduledCallsPage />} />
                 <Route path="/calls" element={<CallsListPage />} />
                 <Route path="/calls/:id" element={<CallDetailPage />} />
                 <Route path="/live" element={<LiveCallPage />} />

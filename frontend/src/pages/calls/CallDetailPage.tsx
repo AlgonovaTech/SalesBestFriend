@@ -20,7 +20,14 @@ import {
   Target,
   Zap,
   User,
+  UserCircle,
   Loader2,
+  Phone,
+  Mail,
+  GraduationCap,
+  MessageSquare,
+  Globe,
+  BookOpen,
 } from 'lucide-react'
 import { formatDate, formatDuration, formatTime } from '@/lib/utils'
 import type { CallScore, TranscriptSegment, CallTask } from '@/types'
@@ -200,6 +207,12 @@ export function CallDetailPage() {
             <CheckSquare className="mr-1.5 h-3.5 w-3.5" />
             Tasks
           </TabsTrigger>
+          {currentCall.pre_call_data && Object.keys(currentCall.pre_call_data).length > 0 && (
+            <TabsTrigger value="client-info">
+              <UserCircle className="mr-1.5 h-3.5 w-3.5" />
+              Client Info
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Analysis Tab */}
@@ -421,6 +434,146 @@ export function CallDetailPage() {
             )}
           </div>
         </TabsContent>
+
+        {/* Client Info Tab */}
+        {currentCall.pre_call_data && Object.keys(currentCall.pre_call_data).length > 0 && (
+          <TabsContent value="client-info" className="mt-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Contact Details */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <UserCircle className="h-4 w-4" />
+                    Contact Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {currentCall.pre_call_data.client_name && (
+                    <div className="flex items-center gap-3">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Client Name</p>
+                        <p className="text-sm font-medium">{currentCall.pre_call_data.client_name}</p>
+                      </div>
+                    </div>
+                  )}
+                  {currentCall.pre_call_data.client_phone && (
+                    <div className="flex items-center gap-3">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Phone</p>
+                        <p className="text-sm font-medium">{currentCall.pre_call_data.client_phone}</p>
+                      </div>
+                    </div>
+                  )}
+                  {currentCall.pre_call_data.client_email && (
+                    <div className="flex items-center gap-3">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Email</p>
+                        <p className="text-sm font-medium">{currentCall.pre_call_data.client_email}</p>
+                      </div>
+                    </div>
+                  )}
+                  {currentCall.pre_call_data.source_channel && (
+                    <div className="flex items-center gap-3">
+                      <Globe className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Source Channel</p>
+                        <p className="text-sm font-medium">{currentCall.pre_call_data.source_channel}</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Child / Student Info */}
+              {(currentCall.pre_call_data.child_name || currentCall.pre_call_data.child_age) && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <GraduationCap className="h-4 w-4" />
+                      Student Info
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {currentCall.pre_call_data.child_name && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Name</p>
+                        <p className="text-sm font-medium">{currentCall.pre_call_data.child_name}</p>
+                      </div>
+                    )}
+                    {currentCall.pre_call_data.child_age && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Age</p>
+                        <p className="text-sm font-medium">{currentCall.pre_call_data.child_age} tahun</p>
+                      </div>
+                    )}
+                    {currentCall.pre_call_data.school_level && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">School Level</p>
+                        <p className="text-sm font-medium">{currentCall.pre_call_data.school_level}</p>
+                      </div>
+                    )}
+                    {currentCall.pre_call_data.interests && currentCall.pre_call_data.interests.length > 0 && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Interests</p>
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {currentCall.pre_call_data.interests.map((interest: string, i: number) => (
+                            <Badge key={i} variant="secondary" className="text-xs">
+                              {interest}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Course Recommendation */}
+              {(currentCall.pre_call_data.recommended_course || currentCall.pre_call_data.recommended_reason) && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <BookOpen className="h-4 w-4" />
+                      Course Recommendation
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {currentCall.pre_call_data.recommended_course && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Recommended Course</p>
+                        <p className="text-sm font-medium">{currentCall.pre_call_data.recommended_course}</p>
+                      </div>
+                    )}
+                    {currentCall.pre_call_data.recommended_reason && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Reason</p>
+                        <p className="text-sm leading-relaxed">{currentCall.pre_call_data.recommended_reason}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Notes */}
+              {currentCall.pre_call_data.notes && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <MessageSquare className="h-4 w-4" />
+                      Notes
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm leading-relaxed">{currentCall.pre_call_data.notes}</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )
