@@ -12,14 +12,14 @@ settings = get_settings()
 app = FastAPI(
     title="Sales Best Friend API",
     version="2.0.0",
-    docs_url="/docs" if settings.debug else None,
-    redoc_url="/redoc" if settings.debug else None,
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
-# CORS
+# CORS — allow all origins for now (Vercel, localhost, etc.)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
