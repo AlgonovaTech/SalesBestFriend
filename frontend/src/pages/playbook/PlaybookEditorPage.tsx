@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, Save, Upload, Plus, Trash2, GripVertical } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { formatDate } from '@/lib/utils'
+import { DocumentsTab } from '@/components/playbook/DocumentsTab'
 import type { CallStage, ChecklistItem, ScoringCriterion, PlaybookVersion } from '@/types'
 
 export function PlaybookEditorPage() {
@@ -203,6 +204,7 @@ export function PlaybookEditorPage() {
           <TabsTrigger value="guidelines">Guidelines</TabsTrigger>
           <TabsTrigger value="structure">Call Structure</TabsTrigger>
           <TabsTrigger value="scoring">Scoring Criteria</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
 
         {/* Guidelines Tab */}
@@ -376,6 +378,11 @@ export function PlaybookEditorPage() {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Documents Tab */}
+        <TabsContent value="documents" className="mt-4">
+          {id && <DocumentsTab playbookId={id} />}
         </TabsContent>
       </Tabs>
 

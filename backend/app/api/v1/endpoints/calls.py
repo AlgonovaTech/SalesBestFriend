@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+import os
+import tempfile
+
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form, BackgroundTasks
 from app.middleware.auth import get_current_user
 from app.models.database import get_supabase_client
 from app.models.schemas import (
@@ -12,7 +15,9 @@ from app.models.schemas import (
     CallTaskCreate,
     CallTaskUpdate,
     PaginatedResponse,
+    YouTubeUploadRequest,
 )
+from app.services.upload_pipeline import process_uploaded_call, process_youtube_call
 
 router = APIRouter()
 
@@ -210,21 +215,159 @@ async def get_analysis(
     return result.data
 
 
-@router.post("/{call_id}/analyze", response_model=CallAnalysisResponse)
+@router.post("/{call_id}/analyze")
 async def trigger_analysis(
     call_id: str,
+    background_tasks: BackgroundTasks,
     user: dict = Depends(get_current_user),
 ):
-    """Trigger post-call AI analysis."""
+    """Trigger post-call AI analysis on an existing call with transcript."""
     supabase = get_supabase_client()
 
     existing = _call_query_for_user(supabase, user).eq("id", call_id).execute()
     if not existing.data:
         raise HTTPException(status_code=404, detail="Call not found")
 
-    # TODO: Implement actual analysis via LLM service
-    # For now, return a placeholder
-    raise HTTPException(status_code=501, detail="Analysis service not yet implemented")
+    # Get transcript
+    transcript_result = (
+        supabase.table("call_transcripts")
+        .select("text")
+        .eq("call_id", call_id)
+        .order("segment_index")
+        .execute()
+    )
+    if not transcript_result.data:
+        raise HTTPException(status_code=400, detail="No transcript found for this call")
+
+    transcript_text = "\n".join(seg["text"] for seg in transcript_result.data)
+
+    # Run analysis in background
+    from app.services.upload_pipeline import _get_playbook_context, _store_results, _update_call, _set_step
+    from app.services.llm.call_analyzer import analyze_call as run_analysis
+
+    def _run_analysis():
+        try:
+            _update_call(call_id, status="processing")
+            _set_step(call_id, "analyzing")
+
+            guidelines, scoring, analysis_docs = _get_playbook_context(call_id)
+            enhanced_guidelines = guidelines or ""
+            if analysis_docs:
+                enhanced_guidelines += f"\n\n--- Analysis Documents ---\n{analysis_docs}"
+
+            analysis = run_analysis(
+                transcript=transcript_text,
+                scoring_criteria=scoring,
+                playbook_guidelines=enhanced_guidelines if enhanced_guidelines else None,
+            )
+            _set_step(call_id, "storing")
+            _store_results(call_id, user["id"], analysis)
+            _update_call(call_id, status="completed", processing_step="done")
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception("Analysis failed for call %s", call_id)
+            _update_call(call_id, status="failed", processing_step="failed:analysis_error")
+
+    background_tasks.add_task(_run_analysis)
+
+    return {"status": "processing", "call_id": call_id}
+
+
+# --- Upload ---
+
+
+@router.post("/upload", response_model=CallResponse, status_code=201)
+async def upload_call(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    title: str = Form(""),
+    language: str = Form("en"),
+    playbook_version_id: str = Form(""),
+    user: dict = Depends(get_current_user),
+):
+    """Upload an audio/video file for post-analysis."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+
+    # Save to temp file
+    suffix = os.path.splitext(file.filename)[1] or ".wav"
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix, prefix="sbf_upload_")
+    content = await file.read()
+    tmp.write(content)
+    tmp.close()
+
+    # Create call record
+    supabase = get_supabase_client()
+    call_title = title or file.filename or "Uploaded Call"
+    payload = {
+        "organization_id": user["organization_id"],
+        "team_id": user["team_id"],
+        "user_id": user["id"],
+        "title": call_title,
+        "status": "processing",
+        "source": "upload",
+        "language": language,
+        "playbook_version_id": playbook_version_id or None,
+        "audio_storage_path": tmp.name,
+        "processing_step": "queued",
+    }
+    result = supabase.table("calls").insert(payload).execute()
+    if not result.data:
+        os.remove(tmp.name)
+        raise HTTPException(status_code=500, detail="Failed to create call")
+
+    call_data = result.data[0]
+
+    # Process in background
+    background_tasks.add_task(
+        process_uploaded_call,
+        call_id=call_data["id"],
+        user_id=user["id"],
+        file_path=tmp.name,
+        language=language,
+    )
+
+    return call_data
+
+
+@router.post("/upload-youtube", response_model=CallResponse, status_code=201)
+async def upload_youtube(
+    data: YouTubeUploadRequest,
+    background_tasks: BackgroundTasks,
+    user: dict = Depends(get_current_user),
+):
+    """Upload a YouTube URL for download, transcription, and analysis."""
+    supabase = get_supabase_client()
+    call_title = data.title or f"YouTube: {data.youtube_url[:50]}"
+
+    payload = {
+        "organization_id": user["organization_id"],
+        "team_id": user["team_id"],
+        "user_id": user["id"],
+        "title": call_title,
+        "status": "processing",
+        "source": "upload",
+        "language": data.language,
+        "playbook_version_id": data.playbook_version_id,
+        "youtube_url": data.youtube_url,
+        "processing_step": "queued",
+    }
+    result = supabase.table("calls").insert(payload).execute()
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Failed to create call")
+
+    call_data = result.data[0]
+
+    # Process in background
+    background_tasks.add_task(
+        process_youtube_call,
+        call_id=call_data["id"],
+        user_id=user["id"],
+        youtube_url=data.youtube_url,
+        language=data.language,
+    )
+
+    return call_data
 
 
 # --- Scores ---

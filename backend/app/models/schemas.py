@@ -26,6 +26,12 @@ class CallSource(str, Enum):
     upload = "upload"
 
 
+class PlaybookDocumentType(str, Enum):
+    call = "call"
+    analysis = "analysis"
+    analytics = "analytics"
+
+
 class TaskStatus(str, Enum):
     pending = "pending"
     in_progress = "in_progress"
@@ -138,6 +144,9 @@ class CallResponse(BaseModel):
     checklist_progress: Optional[dict] = None
     client_card_data: Optional[dict] = None
     pre_call_data: Optional[dict] = None
+    audio_storage_path: Optional[str] = None
+    youtube_url: Optional[str] = None
+    processing_step: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -269,6 +278,45 @@ class RadarDataPointResponse(BaseModel):
     criteria: str
     score: float
     max: float
+
+
+# --- Playbook Document ---
+
+class PlaybookDocumentResponse(BaseModel):
+    id: str
+    playbook_id: str
+    document_type: PlaybookDocumentType
+    title: str
+    description: str = ""
+    content: str = ""
+    file_storage_path: Optional[str] = None
+    sort_order: int = 0
+    created_at: datetime
+    updated_at: datetime
+
+
+class PlaybookDocumentCreate(BaseModel):
+    document_type: PlaybookDocumentType
+    title: str
+    description: str = ""
+    content: str = ""
+    sort_order: int = 0
+
+
+class PlaybookDocumentUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    content: Optional[str] = None
+    sort_order: Optional[int] = None
+
+
+# --- Upload ---
+
+class YouTubeUploadRequest(BaseModel):
+    youtube_url: str
+    title: str = ""
+    language: str = "en"
+    playbook_version_id: Optional[str] = None
 
 
 # --- Paginated ---

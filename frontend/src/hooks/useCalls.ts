@@ -79,11 +79,57 @@ export function useTriggerAnalysis() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (callId: string) =>
-      api.post<CallAnalysis>(`/api/v1/calls/${callId}/analyze`),
+      api.post<{ status: string; call_id: string }>(`/api/v1/calls/${callId}/analyze`),
     onSuccess: (_data, callId) => {
       queryClient.invalidateQueries({ queryKey: ['call-analysis', callId] })
       queryClient.invalidateQueries({ queryKey: ['call-scores', callId] })
       queryClient.invalidateQueries({ queryKey: ['call', callId] })
     },
+  })
+}
+
+export function useUploadCall() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: {
+      file: File
+      title?: string
+      language?: string
+      playbook_version_id?: string
+    }) => {
+      const formData = new FormData()
+      formData.append('file', data.file)
+      if (data.title) formData.append('title', data.title)
+      if (data.language) formData.append('language', data.language)
+      if (data.playbook_version_id) formData.append('playbook_version_id', data.playbook_version_id)
+      return api.upload<Call>('/api/v1/calls/upload', formData)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calls'] })
+    },
+  })
+}
+
+export function useUploadYouTube() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: {
+      youtube_url: string
+      title?: string
+      language?: string
+      playbook_version_id?: string
+    }) => api.post<Call>('/api/v1/calls/upload-youtube', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calls'] })
+    },
+  })
+}
+
+export function useCallPolling(callId: string | undefined, enabled: boolean = false) {
+  return useQuery({
+    queryKey: ['call', callId],
+    queryFn: () => api.get<Call>(`/api/v1/calls/${callId}`),
+    enabled: !!callId && enabled,
+    refetchInterval: 3000,
   })
 }

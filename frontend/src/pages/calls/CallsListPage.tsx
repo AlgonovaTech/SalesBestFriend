@@ -20,9 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, Phone, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Phone, ChevronLeft, ChevronRight, Upload } from 'lucide-react'
 import { formatDate, formatDuration } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { UploadCallDialog } from '@/components/calls/UploadCallDialog'
 import type { Call } from '@/types'
 
 const statusColors: Record<string, string> = {
@@ -37,6 +38,7 @@ export function CallsListPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(1)
+  const [uploadOpen, setUploadOpen] = useState(false)
 
   const { data, isLoading } = useCalls({
     search: search || undefined,
@@ -58,12 +60,18 @@ export function CallsListPage() {
             {total} total calls
           </p>
         </div>
-        <Link to="/live">
-          <Button>
-            <Phone className="mr-2 h-4 w-4" />
-            New Call
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setUploadOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Upload Call
           </Button>
-        </Link>
+          <Link to="/live">
+            <Button>
+              <Phone className="mr-2 h-4 w-4" />
+              New Call
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -127,12 +135,19 @@ export function CallsListPage() {
                   </Link>
                 </TableCell>
                 <TableCell>
-                  <Badge
-                    variant="secondary"
-                    className={cn('text-xs', statusColors[call.status])}
-                  >
-                    {call.status}
-                  </Badge>
+                  <div className="flex items-center gap-1.5">
+                    <Badge
+                      variant="secondary"
+                      className={cn('text-xs', statusColors[call.status])}
+                    >
+                      {call.status}
+                    </Badge>
+                    {call.status === 'processing' && call.processing_step && (
+                      <span className="text-xs text-muted-foreground">
+                        {call.processing_step}
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {call.source}
@@ -183,6 +198,8 @@ export function CallsListPage() {
           </div>
         </div>
       )}
+
+      <UploadCallDialog open={uploadOpen} onOpenChange={setUploadOpen} />
     </div>
   )
 }

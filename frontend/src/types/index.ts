@@ -103,6 +103,23 @@ export interface PlaybookVersion {
   created_at: string
 }
 
+// --- Playbook Documents ---
+
+export type PlaybookDocumentType = 'call' | 'analysis' | 'analytics'
+
+export interface PlaybookDocument {
+  id: string
+  playbook_id: string
+  document_type: PlaybookDocumentType
+  title: string
+  description: string
+  content: string
+  file_storage_path: string | null
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
 // --- Calls ---
 
 export type CallStatus = 'scheduled' | 'live' | 'processing' | 'completed' | 'failed'
@@ -159,6 +176,9 @@ export interface Call {
   checklist_progress: ChecklistProgress | null
   client_card_data: ClientCardData | null
   pre_call_data: PreCallData | null
+  audio_storage_path: string | null
+  youtube_url: string | null
+  processing_step: string | null
   created_at: string
   updated_at: string
   // Joined fields

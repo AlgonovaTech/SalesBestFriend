@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useCall, useCallTranscript, useCallAnalysis, useCallScores, useCallTasks, useTriggerAnalysis } from '@/hooks/useCalls'
+import { useCall, useCallTranscript, useCallAnalysis, useCallScores, useCallTasks, useTriggerAnalysis, useCallPolling } from '@/hooks/useCalls'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -20,14 +20,35 @@ import {
   Target,
   Zap,
   User,
+  Loader2,
 } from 'lucide-react'
 import { formatDate, formatDuration, formatTime } from '@/lib/utils'
 import type { CallScore, TranscriptSegment, CallTask } from '@/types'
+
+const PROCESSING_STEPS = ['queued', 'downloading', 'transcribing', 'analyzing', 'storing', 'done']
+
+function ProcessingStepLabel(step: string) {
+  const labels: Record<string, string> = {
+    queued: 'Queued',
+    downloading: 'Downloading audio...',
+    transcribing: 'Transcribing...',
+    analyzing: 'AI analysis...',
+    storing: 'Saving results...',
+    done: 'Complete',
+  }
+  return labels[step] || step
+}
 
 export function CallDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: call, isLoading: callLoading } = useCall(id)
+
+  // Auto-poll when processing
+  const isProcessing = call?.status === 'processing'
+  const { data: polledCall } = useCallPolling(id, isProcessing)
+  const currentCall = polledCall || call
+
   const { data: transcript } = useCallTranscript(id)
   const { data: analysis } = useCallAnalysis(id)
   const { data: scores } = useCallScores(id)
@@ -43,9 +64,16 @@ export function CallDetailPage() {
     )
   }
 
-  if (!call) {
+  if (!currentCall) {
     return <p className="text-muted-foreground">Call not found.</p>
   }
+
+  const processingStepIndex = currentCall.processing_step
+    ? PROCESSING_STEPS.indexOf(currentCall.processing_step.replace('failed:', ''))
+    : -1
+  const processingProgress = processingStepIndex >= 0
+    ? Math.round((processingStepIndex / (PROCESSING_STEPS.length - 1)) * 100)
+    : 0
 
   return (
     <div className="space-y-6">
@@ -56,26 +84,26 @@ export function CallDetailPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{call.title}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{currentCall.title}</h1>
             <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
-              <span>{formatDate(call.created_at)}</span>
-              {call.duration_seconds && (
+              <span>{formatDate(currentCall.created_at)}</span>
+              {currentCall.duration_seconds && (
                 <>
                   <span>&middot;</span>
                   <span className="flex items-center gap-1">
                     <Clock className="h-3.5 w-3.5" />
-                    {formatDuration(call.duration_seconds)}
+                    {formatDuration(currentCall.duration_seconds)}
                   </span>
                 </>
               )}
-              <Badge variant="secondary">{call.status}</Badge>
-              <Badge variant="outline">{call.source}</Badge>
+              <Badge variant="secondary">{currentCall.status}</Badge>
+              <Badge variant="outline">{currentCall.source}</Badge>
             </div>
           </div>
         </div>
-        {call.status === 'completed' && !analysis && (
+        {currentCall.status === 'completed' && !analysis && (
           <Button
-            onClick={() => triggerAnalysis.mutate(call.id)}
+            onClick={() => triggerAnalysis.mutate(currentCall.id)}
             disabled={triggerAnalysis.isPending}
           >
             <Brain className="mr-2 h-4 w-4" />
@@ -83,6 +111,46 @@ export function CallDetailPage() {
           </Button>
         )}
       </div>
+
+      {/* Processing Progress */}
+      {currentCall.status === 'processing' && currentCall.processing_step && (
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  {ProcessingStepLabel(currentCall.processing_step)}
+                </p>
+                <Progress value={processingProgress} className="mt-2 h-1.5" />
+              </div>
+              <span className="text-xs text-muted-foreground">{processingProgress}%</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Failed state */}
+      {currentCall.status === 'failed' && (
+        <Card className="border-red-200">
+          <CardContent className="py-4 text-center">
+            <p className="text-sm text-red-600">
+              Processing failed{currentCall.processing_step?.startsWith('failed:')
+                ? `: ${currentCall.processing_step.replace('failed:', '')}`
+                : '.'}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => triggerAnalysis.mutate(currentCall.id)}
+              disabled={triggerAnalysis.isPending}
+            >
+              Retry Analysis
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Score overview */}
       {analysis?.overall_score != null && (
