@@ -1,0 +1,26 @@
+# Lightweight requirements for Railway / cloud deploy
+# No torch, whisper, pyannote — transcription via external API
+
+# FastAPI + server
+fastapi==0.109.0
+uvicorn==0.27.0
+python-multipart==0.0.20
+websockets==15.0.1
+
+# Pydantic
+pydantic==2.12.3
+pydantic-settings==2.12.0
+
+# HTTP client (for LLM / Whisper API calls)
+httpx==0.28.1
+
+# Supabase
+supabase==2.27.2
+
+# Auth
+PyJWT==2.10.1
+cryptography==46.0.4
+
+# Utils
+python-dotenv==1.0.0
+pydub==0.25.1

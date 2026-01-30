@@ -79,10 +79,7 @@ async def handle_ingest(
                 # --- Buffer ready: transcribe + analyse ---
                 buffer_data = audio_buffer.get_audio_data()
 
-                loop = asyncio.get_event_loop()
-                segments = await loop.run_in_executor(
-                    None,
-                    transcribe_audio_buffer,
+                segments = await transcribe_audio_buffer(
                     buffer_data,
                     session.language,
                 )

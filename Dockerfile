@@ -1,30 +1,25 @@
 # Railway Dockerfile for SalesBestFriend Backend
-# CACHE BREAK: 2025-11-19 22:24 - Force rebuild to install python-multipart
 FROM python:3.11-slim
 
-# Install ffmpeg
+# Install ffmpeg (needed for audio conversion)
 RUN apt-get update && \
-    apt-get install -y ffmpeg && \
+    apt-get install -y --no-install-recommends ffmpeg && \
     rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+# Set working directory to backend root so "app" package resolves
 WORKDIR /app/backend
 
-# Copy requirements first (for better Docker layer caching)
-COPY backend/requirements.txt .
+# Copy lightweight requirements (no torch/whisper — uses Groq API)
+COPY backend/requirements-deploy.txt .
 
-# Install Python dependencies (including python-multipart)
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements-deploy.txt
 
-# EXPLICIT INSTALL: Ensure python-multipart is installed (fixes Railway cache issue)
-RUN pip install --no-cache-dir python-multipart==0.0.9
-
-# Copy rest of backend code
+# Copy backend code
 COPY backend/ .
 
 # Expose port
 EXPOSE 8000
 
-# Start uvicorn (already in /app/backend)
-CMD uvicorn main_trial_class:app --host 0.0.0.0 --port ${PORT:-8000}
-
+# Start uvicorn — "app.main:app" resolves from /app/backend/app/main.py
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}

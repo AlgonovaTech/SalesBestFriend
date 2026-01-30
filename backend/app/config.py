@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     llm_realtime_model: str = "google/gemini-2.5-flash-preview"
     llm_analysis_model: str = "anthropic/claude-sonnet-4-20250514"
 
+    # Groq (for cloud transcription — optional)
+    groq_api_key: str = ""
+
     # App
     cors_origins: str = "http://localhost:3000"
     debug: bool = False
