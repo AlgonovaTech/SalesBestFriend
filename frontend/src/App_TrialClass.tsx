@@ -79,7 +79,7 @@ function App_TrialClass() {
   const streamRef = useRef<MediaStream | null>(null)
   const mediaRecorderRef = useRef<any>(null)
   const callStartTimeRef = useRef<number | null>(null)
-  const timerIntervalRef = useRef<number | null>(null)
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Always use Railway backend in production (Vercel deployment)
   const isProduction = window.location.hostname !== 'localhost'
