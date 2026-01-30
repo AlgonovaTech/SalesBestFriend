@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from app.middleware.auth import get_current_user
 from app.models.database import get_supabase_client
@@ -31,6 +33,13 @@ async def get_overview(user: dict = Depends(get_current_user)):
     total_calls = len(calls)
     completed_calls = [c for c in calls if c.get("status") == "completed"]
 
+    # Calls this week
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    calls_this_week = len([
+        c for c in completed_calls
+        if c.get("created_at", "") >= week_ago
+    ])
+
     # Get average score from analyses
     if completed_calls:
         call_ids = [c["id"] for c in completed_calls]
@@ -49,6 +58,40 @@ async def get_overview(user: dict = Depends(get_current_user)):
     else:
         average_score = 0.0
 
+    # Score trend (compare this week vs previous week)
+    two_weeks_ago = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
+    this_week_calls = [c for c in completed_calls if c.get("created_at", "") >= week_ago]
+    prev_week_calls = [
+        c for c in completed_calls
+        if two_weeks_ago <= c.get("created_at", "") < week_ago
+    ]
+
+    score_trend = 0.0
+    if this_week_calls and prev_week_calls:
+        tw_ids = [c["id"] for c in this_week_calls]
+        pw_ids = [c["id"] for c in prev_week_calls]
+
+        tw_analyses = (
+            supabase.table("call_analyses")
+            .select("overall_score")
+            .in_("call_id", tw_ids)
+            .execute()
+        )
+        pw_analyses = (
+            supabase.table("call_analyses")
+            .select("overall_score")
+            .in_("call_id", pw_ids)
+            .execute()
+        )
+
+        tw_scores = [a["overall_score"] for a in (tw_analyses.data or []) if a.get("overall_score") is not None]
+        pw_scores = [a["overall_score"] for a in (pw_analyses.data or []) if a.get("overall_score") is not None]
+
+        if tw_scores and pw_scores:
+            tw_avg = sum(tw_scores) / len(tw_scores)
+            pw_avg = sum(pw_scores) / len(pw_scores)
+            score_trend = round(tw_avg - pw_avg, 1)
+
     # Pending tasks
     tasks_result = (
         supabase.table("call_tasks")
@@ -61,9 +104,9 @@ async def get_overview(user: dict = Depends(get_current_user)):
 
     return OverviewStatsResponse(
         total_calls=total_calls,
-        calls_this_week=0,  # TODO: filter by week
+        calls_this_week=calls_this_week,
         average_score=round(average_score, 1),
-        score_trend=0.0,
+        score_trend=score_trend,
         total_tasks_pending=total_tasks_pending,
     )
 
