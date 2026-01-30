@@ -2,7 +2,8 @@ import { useRef, useCallback, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { WSCoachMessage } from '@/types'
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000'
+const WS_URL =
+  import.meta.env.VITE_WS_URL || 'wss://salesbestfriend-production.up.railway.app'
 
 interface UseCallWebSocketOptions {
   callId: string | null
