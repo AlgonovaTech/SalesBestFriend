@@ -11,7 +11,6 @@ Flow:
 
 import logging
 import os
-import subprocess
 import tempfile
 from typing import Optional
 
@@ -95,13 +94,33 @@ def _store_results(call_id: str, user_id: str, analysis: dict):
 
     # Store scores
     for cs in analysis.get("criteria_scores", []):
+        # Handle non-numeric scores (e.g., "Empty", "Advice", "")
+        raw_score = cs.get("score", 0)
+        if isinstance(raw_score, str):
+            # Try to parse numeric
+            try:
+                raw_score = float(raw_score) if raw_score.strip() else 0
+            except (ValueError, TypeError):
+                raw_score = 0  # "Empty", "Advice", etc. → 0
+        elif raw_score is None:
+            raw_score = 0
+
+        raw_max = cs.get("max_score", 1)
+        if isinstance(raw_max, str):
+            try:
+                raw_max = float(raw_max) if raw_max.strip() else 1
+            except (ValueError, TypeError):
+                raw_max = 1
+        elif raw_max is None:
+            raw_max = 1
+
         score_payload = {
             "call_id": call_id,
             "criteria_name": cs.get("name", ""),
-            "criteria_max_score": cs.get("max_score", 10),
-            "score": cs.get("score", 0),
-            "reasoning": cs.get("reasoning", ""),
-            "evidence": cs.get("evidence", ""),
+            "criteria_max_score": raw_max,
+            "score": raw_score,
+            "reasoning": cs.get("reasoning", "") or "",
+            "evidence": cs.get("evidence", "") or "",
         }
         supabase.table("call_scores").insert(score_payload).execute()
 
@@ -127,18 +146,25 @@ async def _transcribe_file(file_path: str, language: str) -> str:
 
 
 def _download_youtube(url: str, output_dir: str) -> str:
-    """Download audio from YouTube URL using yt-dlp. Returns path to audio file."""
+    """Download audio from YouTube URL using yt-dlp Python API. Returns path to audio file."""
+    import yt_dlp
+
     output_path = os.path.join(output_dir, "audio.%(ext)s")
-    cmd = [
-        "yt-dlp",
-        "--extract-audio",
-        "--audio-format", "wav",
-        "--audio-quality", "0",
-        "--no-playlist",
-        "--output", output_path,
-        url,
-    ]
-    subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=300)
+    ydl_opts = {
+        "format": "bestaudio/best",
+        "postprocessors": [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "wav",
+            "preferredquality": "0",
+        }],
+        "outtmpl": output_path,
+        "noplaylist": True,
+        "quiet": True,
+        "no_warnings": True,
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
 
     # Find the output file
     for fname in os.listdir(output_dir):

@@ -52,9 +52,12 @@ class LLMClient:
                 self.api_url,
                 headers=headers,
                 json=payload,
-                timeout=30.0,
+                timeout=300.0,
             )
-            resp.raise_for_status()
+            if resp.status_code != 200:
+                error_body = resp.text[:500]
+                logger.error("LLM API error %s: %s", resp.status_code, error_body)
+                return json.dumps({"error": "API call failed", "details": f"HTTP {resp.status_code}: {error_body}"})
             data = resp.json()
         except Exception as exc:
             logger.error("LLM API call failed: %s", exc)
