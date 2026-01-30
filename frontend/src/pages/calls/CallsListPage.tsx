@@ -23,6 +23,7 @@ import {
 import { Search, Phone, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatDate, formatDuration } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import type { Call } from '@/types'
 
 const statusColors: Record<string, string> = {
   scheduled: 'bg-blue-100 text-blue-700',
@@ -115,7 +116,7 @@ export function CallsListPage() {
                 </TableRow>
               ))}
 
-            {calls.map((call) => (
+            {calls.map((call: Call) => (
               <TableRow key={call.id} className="cursor-pointer">
                 <TableCell>
                   <Link

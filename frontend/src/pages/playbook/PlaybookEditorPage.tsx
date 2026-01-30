@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, Save, Upload, Plus, Trash2, GripVertical } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { formatDate } from '@/lib/utils'
-import type { CallStage, ChecklistItem, ScoringCriterion } from '@/types'
+import type { CallStage, ChecklistItem, ScoringCriterion, PlaybookVersion } from '@/types'
 
 export function PlaybookEditorPage() {
   const { id } = useParams<{ id: string }>()
@@ -386,7 +386,7 @@ export function PlaybookEditorPage() {
           <div>
             <h2 className="text-sm font-medium">Version History</h2>
             <div className="mt-2 space-y-1">
-              {versions.map((v) => (
+              {versions.map((v: PlaybookVersion) => (
                 <div key={v.id} className="flex items-center gap-3 text-sm">
                   <span className="font-mono text-muted-foreground">v{v.version_number}</span>
                   <span className="text-muted-foreground">{formatDate(v.created_at)}</span>

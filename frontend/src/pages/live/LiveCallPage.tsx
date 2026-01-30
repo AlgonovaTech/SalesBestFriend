@@ -25,7 +25,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { cn, formatTime } from '@/lib/utils'
-import type { WSCoachMessage, PreCallData } from '@/types'
+import type { WSCoachMessage, PreCallData, Call } from '@/types'
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error'
 
@@ -94,7 +94,7 @@ export function LiveCallPage() {
         ? { client_name: preCallClientName, notes: preCallNotes }
         : undefined
 
-    const call = await createCall.mutateAsync({
+    const call: Call = await createCall.mutateAsync({
       title: callTitle.trim(),
       source: 'browser',
       pre_call_data: preCallData,

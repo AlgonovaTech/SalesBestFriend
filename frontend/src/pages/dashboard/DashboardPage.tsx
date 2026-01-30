@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Phone, BarChart3, ListChecks, TrendingUp, Mic } from 'lucide-react'
 import { formatDate, formatDuration } from '@/lib/utils'
+import type { Call } from '@/types'
 
 export function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useOverviewStats()
@@ -77,7 +78,7 @@ export function DashboardPage() {
                 </div>
               ))}
 
-            {recentCalls?.data.map((call) => (
+            {recentCalls?.data.map((call: Call) => (
               <Link
                 key={call.id}
                 to={`/calls/${call.id}`}

@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { formatDate } from '@/lib/utils'
+import type { Playbook } from '@/types'
 
 export function PlaybookListPage() {
   const { data: playbooks, isLoading } = usePlaybooks()
@@ -59,7 +60,7 @@ export function PlaybookListPage() {
             </Card>
           ))}
 
-        {playbooks?.map((pb) => (
+        {playbooks?.map((pb: Playbook) => (
           <Link key={pb.id} to={`/playbooks/${pb.id}`}>
             <Card className="transition-colors hover:border-primary/30">
               <CardHeader className="pb-3">

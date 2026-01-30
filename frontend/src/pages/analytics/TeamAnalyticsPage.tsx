@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTeamAnalytics, useRadarData } from '@/hooks/useAnalytics'
+import type { UserScoreSummary, RadarDataPoint } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -34,12 +35,12 @@ export function TeamAnalyticsPage() {
     setSelectedUserId(teamData[0].user_id)
   }
 
-  const selectedUser = teamData?.find((u) => u.user_id === selectedUserId)
+  const selectedUser = teamData?.find((u: UserScoreSummary) => u.user_id === selectedUserId)
 
   // Sort by average score desc
   const sortedTeam = [...(teamData || [])].sort((a, b) => b.average_score - a.average_score)
 
-  const radarChartData = radarData?.map((d) => ({
+  const radarChartData = radarData?.map((d: RadarDataPoint) => ({
     criteria: d.criteria,
     score: d.score,
     fullMark: d.max,
@@ -121,7 +122,7 @@ export function TeamAnalyticsPage() {
                 {sortedTeam.map((member, index) => {
                   const initials = member.full_name
                     .split(' ')
-                    .map((n) => n[0])
+                    .map((n: string) => n[0])
                     .join('')
                     .toUpperCase()
                     .slice(0, 2)
@@ -191,7 +192,7 @@ export function TeamAnalyticsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {selectedUser.scores_by_criteria.map((sc) => (
+                {selectedUser.scores_by_criteria.map((sc: { criteria_name: string; average_score: number; max_score: number }) => (
                   <TableRow key={sc.criteria_name}>
                     <TableCell className="font-medium">{sc.criteria_name}</TableCell>
                     <TableCell>

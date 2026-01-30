@@ -22,6 +22,7 @@ import {
   User,
 } from 'lucide-react'
 import { formatDate, formatDuration, formatTime } from '@/lib/utils'
+import type { CallScore, TranscriptSegment, CallTask } from '@/types'
 
 export function CallDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -94,7 +95,7 @@ export function CallDetailPage() {
             <Separator orientation="vertical" className="h-12" />
             <div className="flex-1">
               <div className="grid grid-cols-2 gap-x-8 gap-y-2 sm:grid-cols-4">
-                {scores?.map((s) => (
+                {scores?.map((s: CallScore) => (
                   <div key={s.id}>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">{s.criteria_name}</span>
@@ -157,7 +158,7 @@ export function CallDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {analysis.what_went_well?.map((item, i) => (
+                    {analysis.what_went_well?.map((item: string, i: number) => (
                       <li key={i} className="flex gap-2 text-sm">
                         <span className="mt-1 text-green-500">+</span>
                         {item}
@@ -177,7 +178,7 @@ export function CallDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {analysis.needs_improvement?.map((item, i) => (
+                    {analysis.needs_improvement?.map((item: string, i: number) => (
                       <li key={i} className="flex gap-2 text-sm">
                         <span className="mt-1 text-amber-500">-</span>
                         {item}
@@ -197,7 +198,7 @@ export function CallDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-1">
-                    {analysis.goals_identified?.map((g, i) => (
+                    {analysis.goals_identified?.map((g: string, i: number) => (
                       <li key={i} className="text-sm">{g}</li>
                     ))}
                   </ul>
@@ -213,7 +214,7 @@ export function CallDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-1">
-                    {analysis.interest_signals?.map((s, i) => (
+                    {analysis.interest_signals?.map((s: string, i: number) => (
                       <li key={i} className="text-sm">{s}</li>
                     ))}
                   </ul>
@@ -253,7 +254,7 @@ export function CallDetailPage() {
             <CardContent className="pt-6">
               <ScrollArea className="h-[500px]">
                 <div className="space-y-3 pr-4">
-                  {transcript?.map((seg) => (
+                  {transcript?.map((seg: TranscriptSegment) => (
                     <div key={seg.id} className="flex gap-3">
                       <span className="shrink-0 pt-0.5 font-mono text-xs text-muted-foreground">
                         {formatTime(Math.floor(seg.start_seconds))}
@@ -282,7 +283,7 @@ export function CallDetailPage() {
         {/* Scores Tab */}
         <TabsContent value="scores" className="mt-4">
           <div className="space-y-3">
-            {scores?.map((s) => (
+            {scores?.map((s: CallScore) => (
               <Card key={s.id}>
                 <CardContent className="py-4">
                   <div className="flex items-center justify-between">
@@ -323,7 +324,7 @@ export function CallDetailPage() {
         {/* Tasks Tab */}
         <TabsContent value="tasks" className="mt-4">
           <div className="space-y-2">
-            {tasks?.map((t) => (
+            {tasks?.map((t: CallTask) => (
               <Card key={t.id}>
                 <CardContent className="flex items-center justify-between py-3">
                   <div>
