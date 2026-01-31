@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 import type { WSCoachMessage } from '@/types'
 
 const WS_URL =
-  import.meta.env.VITE_WS_URL || 'wss://salesbestfriend-production.up.railway.app'
+  import.meta.env.VITE_WS_URL || 'wss://salesbestfriend-production-a766.up.railway.app'
 
 interface UseCallWebSocketOptions {
   callId: string | null

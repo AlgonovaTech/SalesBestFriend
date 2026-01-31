@@ -84,7 +84,7 @@ function App_TrialClass() {
   // Always use Railway backend in production (Vercel deployment)
   const isProduction = window.location.hostname !== 'localhost'
   const API_WS = isProduction 
-    ? 'wss://salesbestfriend-production.up.railway.app'
+    ? 'wss://salesbestfriend-production-a766.up.railway.app'
     : (import.meta.env.VITE_API_WS || 'ws://localhost:8000')
 
   // Connect WebSockets on mount
