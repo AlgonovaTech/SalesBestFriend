@@ -16,10 +16,10 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS — allow all origins for now (Vercel, localhost, etc.)
+# CORS — allow Vercel + localhost origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
