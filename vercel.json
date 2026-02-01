@@ -5,6 +5,18 @@
   "framework": "vite",
   "installCommand": "cd frontend && npm install",
   "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://salesbestfriend-production-a766.up.railway.app/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://salesbestfriend-production-a766.up.railway.app/health"
+    },
+    {
+      "source": "/ws/:path*",
+      "destination": "https://salesbestfriend-production-a766.up.railway.app/ws/:path*"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
@@ -26,14 +38,8 @@
           "key": "Cache-Control",
           "value": "no-cache, no-store, must-revalidate"
         },
-        {
-          "key": "Pragma", 
-          "value": "no-cache"
-        },
-        {
-          "key": "Expires",
-          "value": "0"
-        }
+        { "key": "Pragma", "value": "no-cache" },
+        { "key": "Expires", "value": "0" }
       ]
     },
     {
@@ -43,10 +49,7 @@
           "key": "Cache-Control",
           "value": "no-cache, no-store, must-revalidate"
         },
-        {
-          "key": "Pragma",
-          "value": "no-cache"
-        }
+        { "key": "Pragma", "value": "no-cache" }
       ]
     }
   ]

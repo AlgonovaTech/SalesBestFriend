@@ -1,7 +1,9 @@
 import { supabase } from './supabase'
 
+// Use same-origin proxy via Vercel rewrites (avoids CORS issues with Railway Edge)
+// Falls back to Railway direct URL for local dev
 const API_URL =
-  import.meta.env.VITE_API_URL || 'https://salesbestfriend-production-a766.up.railway.app'
+  import.meta.env.VITE_API_URL || ''
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const { data: { session } } = await supabase.auth.getSession()
