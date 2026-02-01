@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional, Union
 from enum import Enum
 
 
@@ -110,21 +110,21 @@ class PlaybookVersionResponse(BaseModel):
     id: str
     playbook_id: str
     version_number: int
-    guidelines_content: Optional[str] = None
-    call_structure: Optional[dict] = None
-    client_card_fields: Optional[dict] = None
-    scoring_criteria: Optional[dict] = None
-    intent_triggers: Optional[dict] = None
+    guidelines_content: Optional[Any] = None
+    call_structure: Optional[Union[list, dict]] = None
+    client_card_fields: Optional[Union[list, dict]] = None
+    scoring_criteria: Optional[Union[list, dict]] = None
+    intent_triggers: Optional[Union[list, dict]] = None
     published_at: Optional[datetime] = None
     created_by: Optional[str] = None
     created_at: datetime
 
 
 class PlaybookVersionCreate(BaseModel):
-    guidelines_content: Optional[str] = None
-    call_structure: Optional[dict] = None
-    client_card_fields: Optional[dict] = None
-    scoring_criteria: Optional[dict] = None
+    guidelines_content: Optional[Any] = None
+    call_structure: Optional[Union[list, dict]] = None
+    client_card_fields: Optional[Union[list, dict]] = None
+    scoring_criteria: Optional[Union[list, dict]] = None
 
 
 # --- Call ---
@@ -288,8 +288,8 @@ class PlaybookDocumentResponse(BaseModel):
     playbook_id: str
     document_type: PlaybookDocumentType
     title: str
-    description: str = ""
-    content: str = ""
+    description: Optional[str] = ""
+    content: Optional[str] = ""
     file_storage_path: Optional[str] = None
     sort_order: int = 0
     created_at: datetime
