@@ -17,6 +17,13 @@ class Settings(BaseSettings):
     # Groq (for cloud transcription — optional)
     groq_api_key: str = ""
 
+    # Modal.com (transcription + diarization — optional)
+    modal_transcription_endpoint: str = ""
+    modal_api_token: str = ""
+
+    # Transcription backend override (gemini, groq, modal, local)
+    transcription_backend: str = ""
+
     # App
     cors_origins: str = "http://localhost:3000"
     debug: bool = False

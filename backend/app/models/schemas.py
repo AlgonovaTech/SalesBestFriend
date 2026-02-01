@@ -87,9 +87,9 @@ class PlaybookResponse(BaseModel):
     organization_id: str
     team_id: Optional[str] = None
     name: str
-    description: str
+    description: Optional[str] = ""
     is_active: bool
-    created_by: str
+    created_by: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -114,8 +114,9 @@ class PlaybookVersionResponse(BaseModel):
     call_structure: Optional[dict] = None
     client_card_fields: Optional[dict] = None
     scoring_criteria: Optional[dict] = None
+    intent_triggers: Optional[dict] = None
     published_at: Optional[datetime] = None
-    created_by: str
+    created_by: Optional[str] = None
     created_at: datetime
 
 
